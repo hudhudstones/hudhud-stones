@@ -1,31 +1,51 @@
 import { useState } from "react";
-import { Link, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { LayoutDashboard, Package, FolderOpen, ShoppingBag, LogOut, Menu, X } from "lucide-react";
 import { toast } from "sonner";
-import { trpc } from "@/lib/trpc";
 import AdminProducts from "./AdminProducts";
 import AdminCategories from "./AdminCategories";
 import AdminOrders from "./AdminOrders";
 import AdminOverview from "./AdminOverview";
 
 export default function AdminDashboard() {
-  const { user, logout } = useAuth();
+  const { user, logout, loading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
-  const [location] = useLocation();
 
-  // Redirect if not admin
-  if (user && user.role !== "admin") {
+  // Show loading state
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if user is logged in
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-foreground mb-4">Login Required</h1>
+          <p className="text-muted-foreground mb-6">Please log in to access the admin dashboard.</p>
+          <Button onClick={() => window.location.href = "/"}>Go Home</Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if user is admin
+  if (user.role !== "admin") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-foreground mb-4">Access Denied</h1>
           <p className="text-muted-foreground mb-6">You do not have permission to access this page.</p>
-          <Link href="/">
-            <Button>Go Home</Button>
-          </Link>
+          <Button onClick={() => window.location.href = "/"}>Go Home</Button>
         </div>
       </div>
     );
@@ -34,6 +54,7 @@ export default function AdminDashboard() {
   const handleLogout = async () => {
     await logout();
     toast.success("Logged out successfully");
+    window.location.href = "/";
   };
 
   const navItems = [
@@ -53,7 +74,7 @@ export default function AdminDashboard() {
       >
         {/* Header */}
         <div className="p-4 border-b border-border flex items-center justify-between">
-          {sidebarOpen && <h2 className="font-bold text-foreground">Admin Panel</h2>}
+          {sidebarOpen && <h2 className="font-bold text-foreground">Admin</h2>}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="p-2 hover:bg-muted rounded transition-colors"
@@ -88,7 +109,7 @@ export default function AdminDashboard() {
         <div className="p-4 border-t border-border">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-destructive hover:bg-destructive/10 transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-foreground hover:bg-muted transition-colors"
             title="Logout"
           >
             <LogOut className="w-5 h-5 flex-shrink-0" />

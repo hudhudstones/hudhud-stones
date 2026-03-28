@@ -19,6 +19,8 @@ import StoneIdentifier from "./pages/StoneIdentifier";
 function Router() {
   return (
     <Switch>
+      <Route path={"/admin"} component={AdminDashboard} />
+      <Route path={"/admin/*"} component={AdminDashboard} />
       <Route path={"/"} component={Home} />
       <Route path={"/shop"} component={Shop} />
       <Route path={"/product/:slug"} component={ProductDetail} />
@@ -26,7 +28,6 @@ function Router() {
       <Route path={"/checkout"} component={Checkout} />
       <Route path={"/order-confirmation"} component={OrderConfirmation} />
       <Route path={"/identify-stone"} component={StoneIdentifier} />
-      <Route path={"/admin/*"} component={AdminDashboard} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
