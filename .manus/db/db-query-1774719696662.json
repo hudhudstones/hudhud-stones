@@ -1,0 +1,19 @@
+{
+  "query": "SELECT * FROM admin_users LIMIT 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user yKmzHnC4a7UqjAB.root --database 4nj2fW3PQN3ghwcZ7pAYn3 --execute SELECT * FROM admin_users LIMIT 1;",
+  "rows": [
+    {
+      "id": "1",
+      "username": "Tarek",
+      "email": "tarek@hudhudstones.com",
+      "password_hash": "$2b$10$VN/zkeCrGTAWylTm7vu6I.bmXLPfbRzUDrHkiordJ.jZUp1tJrjL.",
+      "is_active": "1",
+      "createdAt": "2026-03-28 17:13:15",
+      "updatedAt": "2026-03-28 17:13:15"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tusername\temail\tpassword_hash\tis_active\tcreatedAt\tupdatedAt\n1\tTarek\ttarek@hudhudstones.com\t$2b$10$VN/zkeCrGTAWylTm7vu6I.bmXLPfbRzUDrHkiordJ.jZUp1tJrjL.\t1\t2026-03-28 17:13:15\t2026-03-28 17:13:15\n",
+  "stderr": "",
+  "execution_time_ms": 1503
+}

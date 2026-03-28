@@ -75,3 +75,39 @@
 - [x] Display identified stone type, properties, and recommendations
 - [x] Link identified stones to shop products
 - [x] Add navigation link to Stone Identifier in header
+
+
+## Comprehensive Testing & Bug Fixes
+
+### Admin Login System
+- [ ] Fix admin login database query
+- [ ] Test login with Tarek/Tarek123_ credentials
+- [ ] Verify session persistence
+- [ ] Test logout functionality
+
+### Customer Shop Testing
+- [ ] Test homepage loads with featured products
+- [ ] Test product catalog with search and filtering
+- [ ] Test product detail page and image gallery
+- [ ] Test shopping cart add/remove/quantity update
+- [ ] Test checkout form validation
+- [ ] Test order confirmation page
+
+### Admin Dashboard Testing
+- [ ] Test admin login access
+- [ ] Test dashboard overview stats
+- [ ] Test product CRUD operations
+- [ ] Test category management
+- [ ] Test order list and status updates
+- [ ] Test logout functionality
+
+### AI & Social Features Testing
+- [ ] Test stone identifier image upload
+- [ ] Test WhatsApp share button on products
+- [ ] Test image gallery zoom and lightbox
+
+### Bug Fixes
+- [ ] Fix any identified errors
+- [ ] Verify all API endpoints working
+- [ ] Check database connections
+- [ ] Test responsive design on mobile
