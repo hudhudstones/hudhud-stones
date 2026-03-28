@@ -6,7 +6,8 @@ import { Loader2 } from "lucide-react";
 import { BRAND } from "@shared/constants";
 
 export default function Home() {
-  const { data: featured, isLoading } = trpc.products.list.useQuery({ featured: true });
+  const { data: allProducts, isLoading } = trpc.products.list.useQuery({});
+  const featured = allProducts?.filter((p) => p.featured).slice(0, 3) || [];
 
   return (
     <div className="min-h-screen flex flex-col">

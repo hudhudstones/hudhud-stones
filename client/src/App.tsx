@@ -1,5 +1,6 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import NotFound from "@/pages/NotFound";
 import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -13,7 +14,7 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import AdminDashboard from "./pages/AdminDashboard";
-import NotFound from "./pages/NotFound";
+import StoneIdentifier from "./pages/StoneIdentifier";
 
 function Router() {
   return (
@@ -24,7 +25,8 @@ function Router() {
       <Route path={"/cart"} component={Cart} />
       <Route path={"/checkout"} component={Checkout} />
       <Route path={"/order-confirmation"} component={OrderConfirmation} />
-      <Route path={"/admin"} component={AdminDashboard} />
+      <Route path={"/identify-stone"} component={StoneIdentifier} />
+      <Route path={"/admin/*"} component={AdminDashboard} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

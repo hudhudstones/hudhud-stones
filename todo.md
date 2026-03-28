@@ -46,3 +46,30 @@
 - [x] Products router unit tests
 - [x] Orders router unit tests
 - [ ] Cart context unit tests
+
+## New Features (Phase 2)
+
+### Email Notifications
+- [ ] Set up email service integration (using built-in notification system)
+- [ ] Send order confirmation email when order is placed
+- [ ] Send order status update emails (processing, completed, cancelled)
+- [ ] Email template design with Hudhud branding
+
+### Product Image Gallery Improvements
+- [ ] Add image zoom-on-hover functionality
+- [ ] Implement lightbox gallery for product images
+- [ ] Add drag-to-reorder images in admin product form
+- [ ] Improve image preview UI
+
+### WhatsApp Product Sharing
+- [ ] Add WhatsApp share button on product detail page
+- [ ] Generate shareable product link with pre-filled message
+- [ ] Add WhatsApp share to product cards in shop
+
+### AI Stone Identifier
+- [x] Create "Identify My Stone" page with AI analysis section
+- [x] Image upload interface for stone photos
+- [x] Integrate LLM for stone identification and analysis
+- [x] Display identified stone type, properties, and recommendations
+- [x] Link identified stones to shop products
+- [x] Add navigation link to Stone Identifier in header

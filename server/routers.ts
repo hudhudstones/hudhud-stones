@@ -25,6 +25,7 @@ import {
   getOrderItems,
 } from "./db";
 import { storagePut } from "./storage";
+import { aiRouter } from "./routers_ai";
 
 // Admin-only procedure
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -48,12 +49,14 @@ export const appRouter = router({
   // ============ CATEGORIES ============
   categories: router({
     list: publicProcedure.query(async () => {
-      return getCategories();
+      return await getCategories();
     }),
 
-    bySlug: publicProcedure.input(z.object({ slug: z.string() })).query(async ({ input }) => {
-      return getCategoryBySlug(input.slug);
-    }),
+    bySlug: publicProcedure
+      .input(z.object({ slug: z.string() }))
+      .query(async ({ input }) => {
+        return await getCategoryBySlug(input.slug);
+      }),
 
     create: adminProcedure
       .input(
@@ -64,21 +67,20 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input }) => {
-        return createCategory(input);
+        return await createCategory(input);
       }),
 
     update: adminProcedure
       .input(
         z.object({
           id: z.number(),
-          name: z.string().optional(),
-          slug: z.string().optional(),
+          name: z.string().min(1).optional(),
+          slug: z.string().min(1).optional(),
           description: z.string().optional(),
         })
       )
       .mutation(async ({ input }) => {
-        const { id, ...data } = input;
-        await updateCategory(id, data);
+        await updateCategory(input.id, input);
         return { success: true };
       }),
 
@@ -95,24 +97,27 @@ export const appRouter = router({
     list: publicProcedure
       .input(
         z.object({
-          categoryId: z.number().optional(),
           search: z.string().optional(),
+          categoryId: z.number().optional(),
           minPrice: z.number().optional(),
           maxPrice: z.number().optional(),
-          featured: z.boolean().optional(),
         })
       )
       .query(async ({ input }) => {
-        return getProducts(input);
+        return await getProducts(input);
       }),
 
-    bySlug: publicProcedure.input(z.object({ slug: z.string() })).query(async ({ input }) => {
-      return getProductBySlug(input.slug);
-    }),
+    bySlug: publicProcedure
+      .input(z.object({ slug: z.string() }))
+      .query(async ({ input }) => {
+        return await getProductBySlug(input.slug);
+      }),
 
-    byId: publicProcedure.input(z.object({ id: z.number() })).query(async ({ input }) => {
-      return getProductById(input.id);
-    }),
+    byId: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        return await getProductById(input.id);
+      }),
 
     create: adminProcedure
       .input(
@@ -122,13 +127,13 @@ export const appRouter = router({
           description: z.string().optional(),
           categoryId: z.number(),
           price: z.string(),
-          stock: z.number(),
+          stock: z.number().default(0),
+          featured: z.boolean().default(false),
           images: z.array(z.string()).default([]),
-          featured: z.boolean().optional(),
         })
       )
       .mutation(async ({ input }) => {
-        return createProduct(input);
+        return await createProduct(input);
       }),
 
     update: adminProcedure
@@ -141,13 +146,12 @@ export const appRouter = router({
           categoryId: z.number().optional(),
           price: z.string().optional(),
           stock: z.number().optional(),
-          images: z.array(z.string()).optional(),
           featured: z.boolean().optional(),
+          images: z.array(z.string()).optional(),
         })
       )
       .mutation(async ({ input }) => {
-        const { id, ...data } = input;
-        await updateProduct(id, data);
+        await updateProduct(input.id, input);
         return { success: true };
       }),
 
@@ -162,36 +166,28 @@ export const appRouter = router({
       .input(
         z.object({
           fileName: z.string(),
-          fileData: z.string(), // base64
+          fileData: z.string(),
         })
       )
       .mutation(async ({ input }) => {
-        try {
-          const buffer = Buffer.from(input.fileData, "base64");
-          const fileKey = `products/${nanoid()}/${input.fileName}`;
-          const { url } = await storagePut(fileKey, buffer, "image/jpeg");
-          return { url };
-        } catch (error) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Image upload failed",
-          });
-        }
+        const buffer = Buffer.from(input.fileData, "base64");
+        const key = `products/${Date.now()}-${input.fileName}`;
+        const result = await storagePut(key, buffer, "image/jpeg");
+        return result;
       }),
   }),
 
   // ============ ORDERS ============
   orders: router({
     list: adminProcedure.query(async () => {
-      return getOrders();
+      return await getOrders();
     }),
 
-    byId: adminProcedure.input(z.object({ id: z.number() })).query(async ({ input }) => {
-      const order = await getOrderById(input.id);
-      if (!order) return null;
-      const items = await getOrderItems(input.id);
-      return { ...order, items };
-    }),
+    byId: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        return await getOrderById(input.id);
+      }),
 
     create: publicProcedure
       .input(
@@ -213,6 +209,7 @@ export const appRouter = router({
       )
       .mutation(async ({ input }) => {
         const orderNumber = `ORD-${nanoid(12).toUpperCase()}`;
+
         const order = await createOrder({
           orderNumber,
           customerName: input.customerName,
@@ -247,6 +244,9 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
+
+  // ============ AI FEATURES ============
+  ai: aiRouter,
 });
 
 export type AppRouter = typeof appRouter;
