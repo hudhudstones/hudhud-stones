@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAuth } from "@/_core/hooks/useAuth";
+import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { Button } from "@/components/ui/button";
 import { LayoutDashboard, Package, FolderOpen, ShoppingBag, BarChart3, LogOut, Menu, X } from "lucide-react";
 import { toast } from "sonner";
@@ -10,7 +10,7 @@ import AdminOverview from "./AdminOverview";
 import ProfitReport from "./admin/ProfitReport";
 
 export default function AdminDashboard() {
-  const { user, logout, loading } = useAuth();
+  const { adminUser: user, logout, isLoading: loading } = useAdminAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
 
@@ -33,20 +33,7 @@ export default function AdminDashboard() {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-foreground mb-4">Login Required</h1>
           <p className="text-muted-foreground mb-6">Please log in to access the admin dashboard.</p>
-          <Button onClick={() => window.location.href = "/"}>Go Home</Button>
-        </div>
-      </div>
-    );
-  }
-
-  // Check if user is admin
-  if (user.role !== "admin") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-foreground mb-4">Access Denied</h1>
-          <p className="text-muted-foreground mb-6">You do not have permission to access this page.</p>
-          <Button onClick={() => window.location.href = "/"}>Go Home</Button>
+          <Button onClick={() => window.location.href = "/admin-login"}>Go to Login</Button>
         </div>
       </div>
     );
