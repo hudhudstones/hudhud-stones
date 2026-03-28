@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { ShoppingCart, Search, Menu, X } from "lucide-react";
+import { ShoppingCart, Search, Menu, X, LogIn } from "lucide-react";
 import { useState } from "react";
 import { useCart } from "@/contexts/CartContext";
 import { BRAND, SOCIAL_MEDIA } from "@shared/constants";
@@ -65,6 +65,12 @@ export function Header() {
                   {cartCount}
                 </span>
               )}
+            </Link>
+
+            {/* Admin Login Button */}
+            <Link href="/admin-login" className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium">
+              <LogIn className="w-4 h-4" />
+              <span>Admin</span>
             </Link>
 
             {/* Mobile Menu Button */}

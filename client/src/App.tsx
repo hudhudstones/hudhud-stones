@@ -5,6 +5,7 @@ import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { CartProvider } from "./contexts/CartContext";
+import { AdminAuthProvider } from "./contexts/AdminAuthContext";
 import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";
 import Home from "./pages/Home";
@@ -15,10 +16,12 @@ import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import AdminDashboard from "./pages/AdminDashboard";
 import StoneIdentifier from "./pages/StoneIdentifier";
+import AdminLogin from "./pages/AdminLogin";
 
 function Router() {
   return (
     <Switch>
+      <Route path={"/admin-login"} component={AdminLogin} />
       <Route path={"/admin"} component={AdminDashboard} />
       <Route path={"/admin/*"} component={AdminDashboard} />
       <Route path={"/"} component={Home} />
@@ -42,22 +45,24 @@ function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light">
-        <CartProvider>
-          <TooltipProvider>
-            <Toaster />
-            {isAdminPage ? (
-              <Router />
-            ) : (
-              <div className="flex flex-col min-h-screen">
-                <Header />
-                <main className="flex-1">
-                  <Router />
-                </main>
-                <Footer />
-              </div>
-            )}
-          </TooltipProvider>
-        </CartProvider>
+        <AdminAuthProvider>
+          <CartProvider>
+            <TooltipProvider>
+              <Toaster />
+              {isAdminPage ? (
+                <Router />
+              ) : (
+                <div className="flex flex-col min-h-screen">
+                  <Header />
+                  <main className="flex-1">
+                    <Router />
+                  </main>
+                  <Footer />
+                </div>
+              )}
+            </TooltipProvider>
+          </CartProvider>
+        </AdminAuthProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );

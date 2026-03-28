@@ -26,6 +26,7 @@ import {
 } from "./db";
 import { storagePut } from "./storage";
 import { aiRouter } from "./routers_ai";
+import { adminAuthRouter } from "./routers_admin_auth";
 
 // Admin-only procedure
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -247,6 +248,8 @@ export const appRouter = router({
 
   // ============ AI FEATURES ============
   ai: aiRouter,
+  // ============ ADMIN AUTH ============
+  admin: adminAuthRouter,
 });
 
 export type AppRouter = typeof appRouter;
