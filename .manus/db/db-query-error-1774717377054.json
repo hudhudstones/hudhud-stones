@@ -1,8 +1,0 @@
-{
-  "query": "CREATE TABLE IF NOT EXISTS `products` (\n  `id` int NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  `name` varchar(255) NOT NULL,\n  `slug` varchar(255) NOT NULL UNIQUE,\n  `description` text,\n  `categoryId` int NOT NULL,\n  `price` varchar(50) NOT NULL,\n  `stock` int DEFAULT 0,\n  `featured` boolean DEFAULT false,\n  `images` json DEFAULT '[]',\n  `createdAt` timestamp DEFAULT CURRENT_TIMESTAMP,\n  `updatedAt` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n  FOREIGN KEY (`categoryId`) REFERENCES `categories`(`id`) ON DELETE CASCADE\n);",
-  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user yKmzHnC4a7UqjAB.root --database 4nj2fW3PQN3ghwcZ7pAYn3 --execute CREATE TABLE IF NOT EXISTS `products` (\n  `id` int NOT NULL AUTO_INCREMENT PRIMARY KEY,\n  `name` varchar(255) NOT NULL,\n  `slug` varchar(255) NOT NULL UNIQUE,\n  `description` text,\n  `categoryId` int NOT NULL,\n  `price` varchar(50) NOT NULL,\n  `stock` int DEFAULT 0,\n  `featured` boolean DEFAULT false,\n  `images` json DEFAULT '[]',\n  `createdAt` timestamp DEFAULT CURRENT_TIMESTAMP,\n  `updatedAt` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n  FOREIGN KEY (`categoryId`) REFERENCES `categories`(`id`) ON DELETE CASCADE\n);",
-  "returncode": 1,
-  "logs": [
-    "ERROR 1101 (42000) at line 1: BLOB/TEXT/JSON column 'images' can't have a default value"
-  ]
-}

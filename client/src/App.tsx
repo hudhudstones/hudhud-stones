@@ -14,7 +14,6 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import AdminDashboard from "./pages/AdminDashboard";
-import AdminLogin from "./pages/AdminLogin";
 import StoneIdentifier from "./pages/StoneIdentifier";
 
 function Router() {
@@ -27,7 +26,6 @@ function Router() {
       <Route path={"/checkout"} component={Checkout} />
       <Route path={"/order-confirmation"} component={OrderConfirmation} />
       <Route path={"/identify-stone"} component={StoneIdentifier} />
-      <Route path={"/admin-login"} component={AdminLogin} />
       <Route path={"/admin/*"} component={AdminDashboard} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
@@ -38,7 +36,7 @@ function Router() {
 
 function App() {
   const [location] = useLocation();
-  const isAdminPage = location.startsWith("/admin") || location.startsWith("/admin-login");
+  const isAdminPage = location.startsWith("/admin");
 
   return (
     <ErrorBoundary>
@@ -47,9 +45,7 @@ function App() {
           <TooltipProvider>
             <Toaster />
             {isAdminPage ? (
-              <div className="flex flex-col min-h-screen">
-                <Router />
-              </div>
+              <Router />
             ) : (
               <div className="flex flex-col min-h-screen">
                 <Header />
