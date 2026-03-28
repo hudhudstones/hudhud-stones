@@ -56,15 +56,17 @@
 - [ ] Email template design with Hudhud branding
 
 ### Product Image Gallery Improvements
-- [ ] Add image zoom-on-hover functionality
-- [ ] Implement lightbox gallery for product images
+- [x] Add image zoom-on-hover functionality
+- [x] Implement lightbox gallery for product images
 - [ ] Add drag-to-reorder images in admin product form
-- [ ] Improve image preview UI
+- [x] Improve image preview UI
+- [x] Create reusable ImageGallery component
 
 ### WhatsApp Product Sharing
-- [ ] Add WhatsApp share button on product detail page
-- [ ] Generate shareable product link with pre-filled message
-- [ ] Add WhatsApp share to product cards in shop
+- [x] Add WhatsApp share button on product detail page
+- [x] Generate shareable product link with pre-filled message
+- [x] Add WhatsApp share to product cards in shop
+- [x] Create WhatsApp share utility function
 
 ### AI Stone Identifier
 - [x] Create "Identify My Stone" page with AI analysis section

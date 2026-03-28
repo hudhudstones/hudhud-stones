@@ -1,10 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
-import { Loader2, X } from "lucide-react";
+import { Loader2, X, Share2 } from "lucide-react";
+import { shareOnWhatsApp } from "@/lib/whatsapp";
 
 export default function Shop() {
   const [location] = useLocation();
@@ -79,17 +80,17 @@ export default function Shop() {
                     >
                       All Categories
                     </button>
-                    {categories?.map((cat) => (
+                    {categories?.map((category) => (
                       <button
-                        key={cat.id}
-                        onClick={() => setCategoryFilter(cat.id.toString())}
+                        key={category.id}
+                        onClick={() => setCategoryFilter(category.id.toString())}
                         className={`w-full text-left px-3 py-2 rounded transition-colors ${
-                          categoryFilter === cat.id.toString()
+                          categoryFilter === category.id.toString()
                             ? "bg-primary text-primary-foreground"
                             : "hover:bg-muted"
                         }`}
                       >
-                        {cat.name}
+                        {category.name}
                       </button>
                     ))}
                   </div>
@@ -146,37 +147,54 @@ export default function Shop() {
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {products.map((product) => (
-                    <Link key={product.id} href={`/product/${product.slug}`}>
-                      <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer h-full">
-                        {product.images[0] && (
-                          <div className="aspect-square bg-muted overflow-hidden">
-                            <img
-                              src={product.images[0]}
-                              alt={product.name}
-                              className="w-full h-full object-cover hover:scale-105 transition-transform"
-                            />
-                          </div>
-                        )}
-                        <div className="p-4">
-                          <h3 className="font-semibold text-foreground mb-2 line-clamp-2">
-                            {product.name}
-                          </h3>
-                          <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                            {product.description}
-                          </p>
-                          <div className="flex justify-between items-center">
-                            <p className="text-lg font-bold text-primary">
-                              ${parseFloat(product.price).toFixed(2)}
+                    <div key={product.id} className="group">
+                      <Link href={`/product/${product.slug}`}>
+                        <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer h-full">
+                          {product.images[0] && (
+                            <div className="aspect-square bg-muted overflow-hidden relative">
+                              <img
+                                src={product.images[0]}
+                                alt={product.name}
+                                className="w-full h-full object-cover hover:scale-105 transition-transform"
+                              />
+                              {/* WhatsApp Share Button */}
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  shareOnWhatsApp({
+                                    productName: product.name,
+                                    productPrice: product.price,
+                                    productUrl: `/product/${product.slug}`,
+                                  });
+                                }}
+                                className="absolute top-2 right-2 bg-green-500 hover:bg-green-600 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                                title="Share on WhatsApp"
+                              >
+                                <Share2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          )}
+                          <div className="p-4">
+                            <h3 className="font-semibold text-foreground mb-2 line-clamp-2">
+                              {product.name}
+                            </h3>
+                            <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                              {product.description}
                             </p>
-                            {product.stock <= 0 && (
-                              <span className="text-xs bg-destructive/20 text-destructive px-2 py-1 rounded">
-                                Out of Stock
-                              </span>
-                            )}
+                            <div className="flex justify-between items-center">
+                              <p className="text-lg font-bold text-primary">
+                                ${parseFloat(product.price).toFixed(2)}
+                              </p>
+                              {product.stock <= 0 && (
+                                <span className="text-xs bg-destructive/20 text-destructive px-2 py-1 rounded">
+                                  Out of Stock
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </Card>
-                    </Link>
+                        </Card>
+                      </Link>
+                    </div>
                   ))}
                 </div>
               </>

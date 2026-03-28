@@ -5,13 +5,14 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { useCart } from "@/contexts/CartContext";
-import { Loader2, ChevronLeft, ShoppingCart } from "lucide-react";
+import { Loader2, ChevronLeft, ShoppingCart, Share2 } from "lucide-react";
 import { toast } from "sonner";
+import { ImageGallery } from "@/components/ImageGallery";
+import { shareOnWhatsApp } from "@/lib/whatsapp";
 
 export default function ProductDetail() {
   const [, params] = useRoute("/product/:slug");
   const [quantity, setQuantity] = useState(1);
-  const [selectedImage, setSelectedImage] = useState(0);
   const { addItem } = useCart();
 
   const { data: product, isLoading } = trpc.products.bySlug.useQuery(
@@ -32,6 +33,17 @@ export default function ProductDetail() {
 
     toast.success(`${product.name} added to cart!`);
     setQuantity(1);
+  };
+
+  const handleShareWhatsApp = () => {
+    if (!product) return;
+
+    shareOnWhatsApp({
+      productName: product.name,
+      productPrice: product.price,
+      productUrl: `/product/${product.slug}`,
+      message: `Check out this beautiful ${product.name} from Hudhud Stones! 💎\n\nPrice: $${parseFloat(product.price).toFixed(2)}\n\n${product.description}\n\nLink: ${window.location.origin}/product/${product.slug}`,
+    });
   };
 
   if (isLoading) {
@@ -63,38 +75,9 @@ export default function ProductDetail() {
         </Link>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Images */}
+          {/* Image Gallery */}
           <div>
-            <div className="bg-muted rounded-lg overflow-hidden mb-4 aspect-square">
-              {product.images[selectedImage] ? (
-                <img
-                  src={product.images[selectedImage]}
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <p className="text-muted-foreground">No image available</p>
-                </div>
-              )}
-            </div>
-
-            {/* Thumbnail Gallery */}
-            {product.images.length > 1 && (
-              <div className="grid grid-cols-4 gap-2">
-                {product.images.map((image, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setSelectedImage(idx)}
-                    className={`aspect-square rounded-lg overflow-hidden border-2 transition-colors ${
-                      selectedImage === idx ? "border-primary" : "border-border"
-                    }`}
-                  >
-                    <img src={image} alt={`${product.name} ${idx + 1}`} className="w-full h-full object-cover" />
-                  </button>
-                ))}
-              </div>
-            )}
+            <ImageGallery images={product.images} productName={product.name} />
           </div>
 
           {/* Product Info */}
@@ -119,7 +102,7 @@ export default function ProductDetail() {
               </p>
             </div>
 
-            {/* Add to Cart */}
+            {/* Add to Cart & Share */}
             <Card className="p-6 mb-8">
               <div className="flex gap-4 mb-6">
                 <div className="flex-1">
@@ -151,14 +134,24 @@ export default function ProductDetail() {
                 </div>
               </div>
 
-              <Button
-                onClick={handleAddToCart}
-                disabled={product.stock <= 0}
-                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                <ShoppingCart className="w-4 h-4 mr-2" />
-                Add to Cart
-              </Button>
+              <div className="flex gap-3">
+                <Button
+                  onClick={handleAddToCart}
+                  disabled={product.stock <= 0}
+                  className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  Add to Cart
+                </Button>
+                <Button
+                  onClick={handleShareWhatsApp}
+                  variant="outline"
+                  className="px-4"
+                  title="Share on WhatsApp"
+                >
+                  <Share2 className="w-4 h-4" />
+                </Button>
+              </div>
             </Card>
 
             {/* Product Details */}
