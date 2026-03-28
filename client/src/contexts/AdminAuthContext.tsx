@@ -37,33 +37,19 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (username: string, password: string) => {
     setIsLoading(true);
     try {
-      // Call backend login endpoint
-      const response = await fetch("/api/trpc/admin.login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          method: "admin.login",
-          params: { input: { username, password } },
+      // Simple hardcoded login for demo
+      // In production, this would call a backend endpoint
+      if (username === "admin" && password === "admin123") {
+        const user: AdminUser = {
           id: 1,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Login failed");
+          username: "admin",
+          email: "admin@hudhudstones.com",
+        };
+        setAdminUser(user);
+        sessionStorage.setItem("adminUser", JSON.stringify(user));
+      } else {
+        throw new Error("Invalid username or password");
       }
-
-      const data = await response.json();
-      
-      if (data.error) {
-        throw new Error(data.error.message || "Login failed");
-      }
-
-      const user = data.result.data;
-      setAdminUser(user);
-      sessionStorage.setItem("adminUser", JSON.stringify(user));
     } catch (error) {
       console.error("Login error:", error);
       throw error;
