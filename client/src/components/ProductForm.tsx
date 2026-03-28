@@ -18,6 +18,7 @@ export default function ProductForm({ product, onClose }: ProductFormProps) {
     description: product?.description || "",
     categoryId: product?.categoryId || 1,
     price: product?.price || "",
+    cost: product?.cost || "",
     stock: product?.stock || 0,
     featured: product?.featured || false,
   });
@@ -50,8 +51,9 @@ export default function ProductForm({ product, onClose }: ProductFormProps) {
         reader.onload = async (event) => {
           const base64 = (event.target?.result as string).split(",")[1];
           const result = await uploadImage.mutateAsync({
-            fileName: file.name,
-            fileData: base64,
+            file: base64,
+            filename: file.name,
+            mimeType: file.type || 'image/jpeg',
           });
           setImages((prev) => [...prev, result.url]);
         };
@@ -149,7 +151,7 @@ export default function ProductForm({ product, onClose }: ProductFormProps) {
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">
               Category *
@@ -181,6 +183,20 @@ export default function ProductForm({ product, onClose }: ProductFormProps) {
               placeholder="0.00"
               step="0.01"
               required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Cost ($) <span className="text-xs text-muted-foreground">(Admin only)</span>
+            </label>
+            <Input
+              type="number"
+              name="cost"
+              value={formData.cost}
+              onChange={handleInputChange}
+              placeholder="0.00"
+              step="0.01"
             />
           </div>
 

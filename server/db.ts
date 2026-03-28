@@ -224,6 +224,7 @@ export async function createProduct(data: {
   description?: string;
   categoryId: number;
   price: string;
+  cost?: string;
   stock: number;
   images: string[];
   featured?: boolean;
@@ -239,6 +240,7 @@ export async function createProduct(data: {
     description: data.description ?? null,
     categoryId: data.categoryId,
     price: data.price,
+    cost: data.cost ?? "0",
     stock: data.stock,
     images: data.images,
     featured: data.featured ?? false,
@@ -255,6 +257,7 @@ export async function updateProduct(
     description: string;
     categoryId: number;
     price: string;
+    cost: string;
     stock: number;
     images: string[];
     featured: boolean;

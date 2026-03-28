@@ -111,3 +111,22 @@
 - [ ] Verify all API endpoints working
 - [ ] Check database connections
 - [ ] Test responsive design on mobile
+
+
+## Direct Image Upload Feature
+- [ ] Create image upload API endpoint (tRPC procedure)
+- [ ] Build ImageUpload component with file input and preview
+- [ ] Integrate into admin ProductForm
+- [ ] Test upload functionality on live site
+- [ ] Verify S3 storage and CDN URLs work correctly
+
+
+## Cost Field & Profit Report
+- [x] Add cost column to products table
+- [x] Update product create/update API to include cost
+- [x] Add cost input field to ProductForm (admin-only)
+- [x] Create profit report API endpoint with daily/weekly/monthly calculations
+- [x] Build profit report UI with date range selector
+- [x] Display orders count, revenue, cost, profit, and profit percentage
+- [x] Add profit report page to admin dashboard
+- [x] Test profit calculations with sample data

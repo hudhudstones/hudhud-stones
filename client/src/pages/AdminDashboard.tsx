@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Package, FolderOpen, ShoppingBag, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, Package, FolderOpen, ShoppingBag, BarChart3, LogOut, Menu, X } from "lucide-react";
 import { toast } from "sonner";
 import AdminProducts from "./AdminProducts";
 import AdminCategories from "./AdminCategories";
 import AdminOrders from "./AdminOrders";
 import AdminOverview from "./AdminOverview";
+import ProfitReport from "./admin/ProfitReport";
 
 export default function AdminDashboard() {
   const { user, logout, loading } = useAuth();
@@ -62,6 +63,7 @@ export default function AdminDashboard() {
     { id: "products", label: "Products", icon: Package },
     { id: "categories", label: "Categories", icon: FolderOpen },
     { id: "orders", label: "Orders", icon: ShoppingBag },
+    { id: "reports", label: "Reports", icon: BarChart3 },
   ];
 
   return (
@@ -125,6 +127,7 @@ export default function AdminDashboard() {
           {activeTab === "products" && <AdminProducts />}
           {activeTab === "categories" && <AdminCategories />}
           {activeTab === "orders" && <AdminOrders />}
+          {activeTab === "reports" && <ProfitReport />}
         </div>
       </main>
     </div>

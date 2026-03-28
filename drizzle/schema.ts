@@ -54,6 +54,7 @@ export const products = mysqlTable("products", {
   description: text("description"),
   categoryId: int("categoryId").notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  cost: decimal("cost", { precision: 10, scale: 2 }).default("0").notNull(), // Admin-only cost for profit calculations
   stock: int("stock").default(0).notNull(),
   featured: boolean("featured").default(false).notNull(),
   images: json("images").$type<string[]>().default([]).notNull(), // Array of S3 URLs

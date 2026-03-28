@@ -27,6 +27,7 @@ import {
 import { storagePut } from "./storage";
 import { aiRouter } from "./routers_ai";
 import { adminAuthRouter } from "./routers_admin_auth";
+import { getDailyProfitReport, getWeeklyProfitReport, getMonthlyProfitReport } from "./db_profit";
 
 // Admin-only procedure
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -128,6 +129,7 @@ export const appRouter = router({
           description: z.string().optional(),
           categoryId: z.number(),
           price: z.string(),
+          cost: z.string().optional(),
           stock: z.number().default(0),
           featured: z.boolean().default(false),
           images: z.array(z.string()).default([]),
@@ -141,42 +143,64 @@ export const appRouter = router({
       .input(
         z.object({
           id: z.number(),
-          name: z.string().optional(),
-          slug: z.string().optional(),
+          name: z.string().min(1).optional(),
+          slug: z.string().min(1).optional(),
           description: z.string().optional(),
           categoryId: z.number().optional(),
           price: z.string().optional(),
+          cost: z.string().optional(),
           stock: z.number().optional(),
           featured: z.boolean().optional(),
           images: z.array(z.string()).optional(),
         })
       )
       .mutation(async ({ input }) => {
-        await updateProduct(input.id, input);
-        return { success: true };
+        const { id, ...data } = input;
+        return await updateProduct(id, data);
       }),
 
     delete: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
-        await deleteProduct(input.id);
-        return { success: true };
+        return await deleteProduct(input.id);
       }),
 
     uploadImage: adminProcedure
       .input(
         z.object({
-          fileName: z.string(),
-          fileData: z.string(),
+          file: z.string(), // base64 encoded file data
+          filename: z.string(),
+          mimeType: z.string(),
         })
       )
       .mutation(async ({ input }) => {
-        const buffer = Buffer.from(input.fileData, "base64");
-        const key = `products/${Date.now()}-${input.fileName}`;
-        const result = await storagePut(key, buffer, "image/jpeg");
-        return result;
+        try {
+          // Convert base64 to buffer
+          const buffer = Buffer.from(input.file, 'base64');
+          
+          // Generate unique filename
+          const timestamp = Date.now();
+          const randomId = nanoid(8);
+          const ext = input.filename.split('.').pop() || 'jpg';
+          const key = `products/${timestamp}-${randomId}.${ext}`;
+          
+          // Upload to S3
+          const result = await storagePut(key, buffer, input.mimeType);
+          
+          return {
+            url: result.url,
+            key: result.key,
+          };
+        } catch (error) {
+          console.error('[Upload Error]', error);
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to upload image',
+          });
+        }
       }),
   }),
+
 
   // ============ ORDERS ============
   orders: router({
@@ -243,6 +267,42 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         await updateOrderStatus(input.id, input.status);
         return { success: true };
+      }),
+  }),
+
+  // ============ REPORTS ============
+  reports: router({
+    daily: adminProcedure
+      .input(
+        z.object({
+          startDate: z.date(),
+          endDate: z.date(),
+        })
+      )
+      .query(async ({ input }) => {
+        return await getDailyProfitReport(input.startDate, input.endDate);
+      }),
+
+    weekly: adminProcedure
+      .input(
+        z.object({
+          startDate: z.date(),
+          endDate: z.date(),
+        })
+      )
+      .query(async ({ input }) => {
+        return await getWeeklyProfitReport(input.startDate, input.endDate);
+      }),
+
+    monthly: adminProcedure
+      .input(
+        z.object({
+          startDate: z.date(),
+          endDate: z.date(),
+        })
+      )
+      .query(async ({ input }) => {
+        return await getMonthlyProfitReport(input.startDate, input.endDate);
       }),
   }),
 
