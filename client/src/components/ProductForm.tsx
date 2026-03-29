@@ -69,7 +69,12 @@ export default function ProductForm({ product, onClose }: ProductFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.slug || !formData.price) {
+    if (!categories || categories.length === 0) {
+      toast.error("Please create a category first in the Categories section");
+      return;
+    }
+
+    if (!formData.name || !formData.slug || !formData.price || !formData.categoryId) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -156,19 +161,26 @@ export default function ProductForm({ product, onClose }: ProductFormProps) {
             <label className="block text-sm font-medium text-foreground mb-2">
               Category *
             </label>
-            <select
-              name="categoryId"
-              value={formData.categoryId}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-border rounded-lg bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              required
-            >
-              {categories?.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
+            {!categories || categories.length === 0 ? (
+              <div className="w-full px-3 py-2 border border-destructive rounded-lg bg-destructive/10 text-destructive text-sm flex items-center">
+                <span>⚠️ No categories available</span>
+              </div>
+            ) : (
+              <select
+                name="categoryId"
+                value={formData.categoryId}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-border rounded-lg bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                required
+              >
+                <option value="">-- Select a category --</option>
+                {categories?.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div>
