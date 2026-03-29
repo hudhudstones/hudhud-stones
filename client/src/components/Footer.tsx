@@ -10,7 +10,9 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           {/* Brand */}
           <div className="flex flex-col gap-2">
-            <img src={BRAND.logo} alt="Hudhud Stones" className="h-10 w-auto" />
+            <div className="h-16 w-16 flex items-center justify-center">
+              <img src={BRAND.logo} alt="Hudhud Stones" className="h-16 w-16 object-contain" />
+            </div>
             <h3 className="text-lg font-bold text-foreground">{BRAND.name}</h3>
             <p className="text-sm text-muted-foreground">{BRAND.tagline}</p>
           </div>
