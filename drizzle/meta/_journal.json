@@ -15,6 +15,13 @@
       "when": 1774716017443,
       "tag": "0001_curious_human_fly",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1774773661162,
+      "tag": "0002_good_thunderbird",
+      "breakpoints": true
     }
   ]
 }

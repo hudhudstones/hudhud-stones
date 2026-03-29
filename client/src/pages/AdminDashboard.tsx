@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Package, FolderOpen, ShoppingBag, BarChart3, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, Package, FolderOpen, ShoppingBag, BarChart3, LogOut, Menu, X, Settings } from "lucide-react";
 import { toast } from "sonner";
 import AdminProducts from "./AdminProducts";
 import AdminCategories from "./AdminCategories";
 import AdminOrders from "./AdminOrders";
 import AdminOverview from "./AdminOverview";
 import ProfitReport from "./admin/ProfitReport";
+import AdminSettings from "./AdminSettings";
 
 export default function AdminDashboard() {
   const { adminUser: user, logout, isLoading: loading } = useAdminAuth();
@@ -51,6 +52,7 @@ export default function AdminDashboard() {
     { id: "categories", label: "Categories", icon: FolderOpen },
     { id: "orders", label: "Orders", icon: ShoppingBag },
     { id: "reports", label: "Reports", icon: BarChart3 },
+    { id: "settings", label: "Settings", icon: Settings },
   ];
 
   return (
@@ -115,6 +117,7 @@ export default function AdminDashboard() {
           {activeTab === "categories" && <AdminCategories />}
           {activeTab === "orders" && <AdminOrders />}
           {activeTab === "reports" && <ProfitReport />}
+          {activeTab === "settings" && <AdminSettings />}
         </div>
       </main>
     </div>

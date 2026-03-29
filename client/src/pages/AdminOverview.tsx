@@ -95,8 +95,12 @@ export default function AdminOverview() {
                     <td className="py-3 px-4">
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          order.status === "completed"
+                          order.status === "complete"
                             ? "bg-green-100 text-green-800"
+                            : order.status === "given"
+                            ? "bg-green-100 text-green-800"
+                            : order.status === "prepare"
+                            ? "bg-blue-100 text-blue-800"
                             : order.status === "processing"
                             ? "bg-blue-100 text-blue-800"
                             : order.status === "pending"

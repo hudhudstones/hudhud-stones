@@ -1,0 +1,2 @@
+ALTER TABLE `orders` MODIFY COLUMN `status` enum('pending','processing','prepare','given','complete','cancelled') NOT NULL DEFAULT 'pending';--> statement-breakpoint
+ALTER TABLE `products` ADD `cost` decimal(10,2) DEFAULT '0' NOT NULL;

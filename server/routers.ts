@@ -261,11 +261,19 @@ export const appRouter = router({
       .input(
         z.object({
           id: z.number(),
-          status: z.enum(["pending", "processing", "completed", "cancelled"]),
+          status: z.enum(["pending", "processing", "prepare", "given", "complete", "cancelled"]),
         })
       )
       .mutation(async ({ input }) => {
         await updateOrderStatus(input.id, input.status);
+        return { success: true };
+      }),
+
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const { deleteOrderWithItems } = await import("./db_orders");
+        await deleteOrderWithItems(input.id);
         return { success: true };
       }),
   }),

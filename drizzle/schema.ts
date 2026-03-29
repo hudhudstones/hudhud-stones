@@ -75,7 +75,7 @@ export const orders = mysqlTable("orders", {
   customerEmail: varchar("customerEmail", { length: 320 }).notNull(),
   customerPhone: varchar("customerPhone", { length: 20 }).notNull(),
   customerAddress: text("customerAddress").notNull(),
-  status: mysqlEnum("status", ["pending", "processing", "completed", "cancelled"])
+  status: mysqlEnum("status", ["pending", "processing", "prepare", "given", "complete", "cancelled"])
     .default("pending")
     .notNull(),
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),

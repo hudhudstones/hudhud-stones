@@ -318,7 +318,7 @@ export async function createOrder(data: {
 
 export async function updateOrderStatus(
   id: number,
-  status: "pending" | "processing" | "completed" | "cancelled"
+  status: "pending" | "processing" | "prepare" | "given" | "complete" | "cancelled"
 ): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
