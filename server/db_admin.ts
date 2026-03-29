@@ -103,7 +103,7 @@ export async function authenticateAdminUser(username: string, password: string) 
   const user = users[0];
   
   if (!user.is_active) {
-    throw new Error("User account is inactive");
+    throw new Error("User account is disabled. Please contact an administrator.");
   }
   
   if (!verifyPassword(password, user.password_hash)) {
@@ -126,4 +126,47 @@ export async function deleteAdminUser(userId: number) {
   
   await db.delete(adminUsers).where(eq(adminUsers.id, userId));
   return { success: true };
+}
+
+/**
+ * Change admin user username
+ */
+export async function changeAdminUsername(userId: number, newUsername: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  // Check if new username already exists
+  const existing = await db.select().from(adminUsers).where(eq(adminUsers.username, newUsername));
+  if (existing.length > 0) {
+    throw new Error("Username already exists");
+  }
+  
+  await db.update(adminUsers)
+    .set({ username: newUsername })
+    .where(eq(adminUsers.id, userId));
+  
+  return { success: true };
+}
+
+/**
+ * Toggle admin user account status (enable/disable)
+ */
+export async function toggleAdminUserStatus(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  // Get current status
+  const users = await db.select().from(adminUsers).where(eq(adminUsers.id, userId));
+  if (users.length === 0) {
+    throw new Error("User not found");
+  }
+  
+  const currentStatus = users[0].is_active;
+  const newStatus = currentStatus ? 0 : 1;
+  
+  await db.update(adminUsers)
+    .set({ is_active: newStatus })
+    .where(eq(adminUsers.id, userId));
+  
+  return { success: true, is_active: newStatus === 1 };
 }

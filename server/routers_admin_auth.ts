@@ -1,6 +1,6 @@
 import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
-import { authenticateAdminUser, getAllAdminUsers, createAdminUser, updateAdminUserPassword, deleteAdminUser } from "./db_admin";
+import { authenticateAdminUser, getAllAdminUsers, createAdminUser, updateAdminUserPassword, deleteAdminUser, changeAdminUsername, toggleAdminUserStatus } from "./db_admin";
 import { TRPCError } from "@trpc/server";
 
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
@@ -75,6 +75,39 @@ export const adminAuthRouter = router({
       try {
         await deleteAdminUser(input.userId);
         return { success: true, message: "User deleted successfully" };
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        throw new Error(errorMessage);
+      }
+    }),
+
+  changeUsername: publicProcedure
+    .input(
+      z.object({
+        userId: z.number(),
+        newUsername: z.string().min(1, "Username is required"),
+      })
+    )
+    .mutation(async ({ input }) => {
+      try {
+        await changeAdminUsername(input.userId, input.newUsername);
+        return { success: true, message: "Username changed successfully" };
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        throw new Error(errorMessage);
+      }
+    }),
+
+  toggleStatus: publicProcedure
+    .input(z.object({ userId: z.number() }))
+    .mutation(async ({ input }) => {
+      try {
+        const result = await toggleAdminUserStatus(input.userId);
+        return {
+          success: true,
+          message: result.is_active ? "User account enabled" : "User account disabled",
+          is_active: result.is_active,
+        };
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         throw new Error(errorMessage);

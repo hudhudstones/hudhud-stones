@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { Trash2, Edit2, Save, X } from "lucide-react";
+import { Trash2, Edit2, Save, X, Power, Lock } from "lucide-react";
 
 export default function AdminSettings() {
   const [activeTab, setActiveTab] = useState<"users" | "dashboard">("users");
@@ -14,12 +14,16 @@ export default function AdminSettings() {
   const [loading, setLoading] = useState(false);
   const [editingUserId, setEditingUserId] = useState<number | null>(null);
   const [editingPassword, setEditingPassword] = useState("");
+  const [editingUsername, setEditingUsername] = useState("");
+  const [editMode, setEditMode] = useState<"password" | "username" | null>(null);
 
   // Fetch existing users
   const { data: users, isLoading: usersLoading, refetch } = trpc.admin.listUsers.useQuery();
   const createUserMutation = trpc.admin.createUser.useMutation();
   const updatePasswordMutation = trpc.admin.updatePassword.useMutation();
   const deleteUserMutation = trpc.admin.deleteUser.useMutation();
+  const changeUsernameMutation = trpc.admin.changeUsername.useMutation();
+  const toggleStatusMutation = trpc.admin.toggleStatus.useMutation();
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,9 +71,43 @@ export default function AdminSettings() {
       toast.success("Password updated successfully");
       setEditingUserId(null);
       setEditingPassword("");
+      setEditMode(null);
       refetch();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to update password";
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleChangeUsername = async (userId: number) => {
+    if (!editingUsername.trim()) {
+      toast.error("Please enter a new username");
+      return;
+    }
+
+    try {
+      await changeUsernameMutation.mutateAsync({
+        userId,
+        newUsername: editingUsername,
+      });
+      toast.success("Username changed successfully");
+      setEditingUserId(null);
+      setEditingUsername("");
+      setEditMode(null);
+      refetch();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to change username";
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleToggleStatus = async (userId: number, currentStatus: number | null) => {
+    try {
+      const result = await toggleStatusMutation.mutateAsync({ userId });
+      toast.success(result.message);
+      refetch();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to toggle user status";
       toast.error(errorMessage);
     }
   };
@@ -206,12 +244,12 @@ export default function AdminSettings() {
                           <p className="font-medium text-foreground">{user.username}</p>
                           <p className="text-xs text-muted-foreground">{user.email}</p>
                         </div>
-                        <span className={`px-2 py-1 text-xs rounded ${user.is_active ? 'bg-green-500/20 text-green-700' : 'bg-red-500/20 text-red-700'}`}>
-                          {user.is_active ? 'Active' : 'Inactive'}
+                        <span className={`px-2 py-1 text-xs rounded font-medium ${user.is_active ? 'bg-green-500/20 text-green-700' : 'bg-red-500/20 text-red-700'}`}>
+                          {user.is_active ? 'Active' : 'Disabled'}
                         </span>
                       </div>
 
-                      {editingUserId === user.id ? (
+                      {editingUserId === user.id && editMode === "password" ? (
                         <div className="space-y-2">
                           <Input
                             type="password"
@@ -235,6 +273,39 @@ export default function AdminSettings() {
                               onClick={() => {
                                 setEditingUserId(null);
                                 setEditingPassword("");
+                                setEditMode(null);
+                              }}
+                            >
+                              <X className="w-4 h-4 mr-2" />
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : editingUserId === user.id && editMode === "username" ? (
+                        <div className="space-y-2">
+                          <Input
+                            type="text"
+                            placeholder="Enter new username"
+                            value={editingUsername}
+                            onChange={(e) => setEditingUsername(e.target.value)}
+                            className="bg-background border-border"
+                          />
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => handleChangeUsername(user.id)}
+                              className="flex-1 bg-primary hover:bg-primary/90"
+                            >
+                              <Save className="w-4 h-4 mr-2" />
+                              Save
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setEditingUserId(null);
+                                setEditingUsername("");
+                                setEditMode(null);
                               }}
                             >
                               <X className="w-4 h-4 mr-2" />
@@ -243,15 +314,41 @@ export default function AdminSettings() {
                           </div>
                         </div>
                       ) : (
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => setEditingUserId(user.id)}
+                            onClick={() => {
+                              setEditingUserId(user.id);
+                              setEditingUsername(user.username);
+                              setEditMode("username");
+                            }}
                             className="flex-1"
                           >
                             <Edit2 className="w-4 h-4 mr-2" />
+                            Change Username
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setEditingUserId(user.id);
+                              setEditingPassword("");
+                              setEditMode("password");
+                            }}
+                            className="flex-1"
+                          >
+                            <Lock className="w-4 h-4 mr-2" />
                             Change Password
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={user.is_active ? "outline" : "default"}
+                            onClick={() => handleToggleStatus(user.id, user.is_active)}
+                            className={user.is_active ? "" : "bg-green-600 hover:bg-green-700"}
+                          >
+                            <Power className="w-4 h-4 mr-2" />
+                            {user.is_active ? "Disable" : "Enable"}
                           </Button>
                           {users.length > 1 && (
                             <Button
