@@ -67,11 +67,8 @@ export function Header() {
               )}
             </Link>
 
-            {/* Admin Login Button */}
-            <Link href="/admin-login" className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium">
-              <LogIn className="w-4 h-4" />
-              <span>Admin</span>
-            </Link>
+            {/* Admin Login Button - Hidden from customers */}
+            {/* Access via direct URL: /admin-login */}
 
             {/* Mobile Menu Button */}
             <button
