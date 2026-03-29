@@ -1,15 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { Trash2, Edit2, Save, X } from "lucide-react";
 
 export default function AdminSettings() {
   const [activeTab, setActiveTab] = useState<"users" | "dashboard">("users");
   const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [newEmail, setNewEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [editingUserId, setEditingUserId] = useState<number | null>(null);
+  const [editingPassword, setEditingPassword] = useState("");
+
+  // Fetch existing users
+  const { data: users, isLoading: usersLoading, refetch } = trpc.admin.listUsers.useQuery();
+  const createUserMutation = trpc.admin.createUser.useMutation();
+  const updatePasswordMutation = trpc.admin.updatePassword.useMutation();
+  const deleteUserMutation = trpc.admin.deleteUser.useMutation();
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,15 +30,62 @@ export default function AdminSettings() {
 
     setLoading(true);
     try {
-      // This would call a tRPC endpoint to create a new admin user
-      // For now, we'll show a placeholder
-      toast.success(`User "${newUsername}" would be created (feature pending backend)`);
+      await createUserMutation.mutateAsync({
+        username: newUsername,
+        password: newPassword,
+        email: newEmail || undefined,
+      });
+      toast.success(`User "${newUsername}" created successfully`);
       setNewUsername("");
       setNewPassword("");
+      setNewEmail("");
+      refetch();
     } catch (err) {
-      toast.error("Failed to create user");
+      const errorMessage = err instanceof Error ? err.message : "Failed to create user";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpdatePassword = async (userId: number) => {
+    if (!editingPassword.trim()) {
+      toast.error("Please enter a new password");
+      return;
+    }
+
+    if (editingPassword.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+
+    try {
+      await updatePasswordMutation.mutateAsync({
+        userId,
+        newPassword: editingPassword,
+      });
+      toast.success("Password updated successfully");
+      setEditingUserId(null);
+      setEditingPassword("");
+      refetch();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to update password";
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleDeleteUser = async (userId: number, username: string) => {
+    if (!confirm(`Are you sure you want to delete user "${username}"?`)) {
+      return;
+    }
+
+    try {
+      await deleteUserMutation.mutateAsync({ userId });
+      toast.success("User deleted successfully");
+      refetch();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to delete user";
+      toast.error(errorMessage);
     }
   };
 
@@ -95,9 +152,24 @@ export default function AdminSettings() {
                   <Input
                     id="password"
                     type="password"
-                    placeholder="Enter password"
+                    placeholder="Enter password (min 6 characters)"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
+                    disabled={loading}
+                    className="bg-background border-border"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="email" className="text-sm font-medium text-foreground">
+                    Email (Optional)
+                  </label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="Enter email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
                     disabled={loading}
                     className="bg-background border-border"
                   />
@@ -120,17 +192,84 @@ export default function AdminSettings() {
               <CardDescription>Manage current administrator accounts</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                <div className="p-3 bg-muted/50 rounded-lg border border-border flex justify-between items-center">
-                  <div>
-                    <p className="font-medium text-foreground">admin</p>
-                    <p className="text-xs text-muted-foreground">Default admin account</p>
-                  </div>
-                  <Button variant="outline" disabled>
-                    Default
-                  </Button>
+              {usersLoading ? (
+                <div className="text-center py-8">
+                  <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+                  <p className="text-muted-foreground mt-2">Loading users...</p>
                 </div>
-              </div>
+              ) : users && users.length > 0 ? (
+                <div className="space-y-3">
+                  {users.map((user: any) => (
+                    <div key={user.id} className="p-4 bg-muted/50 rounded-lg border border-border">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <p className="font-medium text-foreground">{user.username}</p>
+                          <p className="text-xs text-muted-foreground">{user.email}</p>
+                        </div>
+                        <span className={`px-2 py-1 text-xs rounded ${user.is_active ? 'bg-green-500/20 text-green-700' : 'bg-red-500/20 text-red-700'}`}>
+                          {user.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+
+                      {editingUserId === user.id ? (
+                        <div className="space-y-2">
+                          <Input
+                            type="password"
+                            placeholder="Enter new password (min 6 characters)"
+                            value={editingPassword}
+                            onChange={(e) => setEditingPassword(e.target.value)}
+                            className="bg-background border-border"
+                          />
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => handleUpdatePassword(user.id)}
+                              className="flex-1 bg-primary hover:bg-primary/90"
+                            >
+                              <Save className="w-4 h-4 mr-2" />
+                              Save
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setEditingUserId(null);
+                                setEditingPassword("");
+                              }}
+                            >
+                              <X className="w-4 h-4 mr-2" />
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setEditingUserId(user.id)}
+                            className="flex-1"
+                          >
+                            <Edit2 className="w-4 h-4 mr-2" />
+                            Change Password
+                          </Button>
+                          {users.length > 1 && (
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDeleteUser(user.id, user.username)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-muted-foreground py-8">No users found</p>
+              )}
             </CardContent>
           </Card>
         </div>

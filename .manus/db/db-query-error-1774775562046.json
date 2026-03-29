@@ -1,0 +1,8 @@
+{
+  "query": "INSERT IGNORE INTO `admin_users` (username, password, email) VALUES \n('admin', 'admin123', 'admin@hudhudstones.com'),\n('Tarek', 'Tarek123_', 'tarek@hudhudstones.com');",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user yKmzHnC4a7UqjAB.root --database 4nj2fW3PQN3ghwcZ7pAYn3 --execute INSERT IGNORE INTO `admin_users` (username, password, email) VALUES \n('admin', 'admin123', 'admin@hudhudstones.com'),\n('Tarek', 'Tarek123_', 'tarek@hudhudstones.com');",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'password' in 'field list'"
+  ]
+}
