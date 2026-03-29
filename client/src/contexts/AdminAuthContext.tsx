@@ -1,58 +1,57 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { trpc } from "../lib/trpc";
 
 export interface AdminUser {
   id: number;
   username: string;
-  email: string;
+  email: string | null;
 }
 
 interface AdminAuthContextType {
   adminUser: AdminUser | null;
   isLoading: boolean;
+  error: string | null;
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
-  isAuthenticated: boolean;
 }
 
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined);
 
-export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
+export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Check if user is already logged in (from session storage)
+  // Load user from sessionStorage on mount
   useEffect(() => {
-    const storedUser = sessionStorage.getItem("adminUser");
-    if (storedUser) {
+    const stored = sessionStorage.getItem("adminUser");
+    if (stored) {
       try {
-        setAdminUser(JSON.parse(storedUser));
-      } catch (error) {
-        console.error("Failed to parse stored admin user:", error);
-        sessionStorage.removeItem("adminUser");
+        setAdminUser(JSON.parse(stored));
+      } catch (e) {
+        console.error("Failed to parse stored admin user", e);
       }
     }
-    setIsLoading(false);
   }, []);
+
+  // Use tRPC mutation hook
+  const loginMutation = trpc.admin.login.useMutation({
+    onSuccess: (user) => {
+      setAdminUser(user);
+      sessionStorage.setItem("adminUser", JSON.stringify(user));
+      setError(null);
+    },
+    onError: (error) => {
+      setError(error.message || "Invalid username or password");
+    },
+  });
 
   const login = async (username: string, password: string) => {
     setIsLoading(true);
     try {
-      // Simple hardcoded login for demo
-      // In production, this would call a backend endpoint
-      if (username === "admin" && password === "admin123") {
-        const user: AdminUser = {
-          id: 1,
-          username: "admin",
-          email: "admin@hudhudstones.com",
-        };
-        setAdminUser(user);
-        sessionStorage.setItem("adminUser", JSON.stringify(user));
-      } else {
-        throw new Error("Invalid username or password");
-      }
-    } catch (error) {
-      console.error("Login error:", error);
-      throw error;
+      await loginMutation.mutateAsync({ username, password });
+    } catch (err) {
+      // Error is handled by mutation's onError
     } finally {
       setIsLoading(false);
     }
@@ -64,24 +63,16 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AdminAuthContext.Provider
-      value={{
-        adminUser,
-        isLoading,
-        login,
-        logout,
-        isAuthenticated: !!adminUser,
-      }}
-    >
+    <AdminAuthContext.Provider value={{ adminUser, isLoading: isLoading || loginMutation.isPending, error, login, logout }}>
       {children}
     </AdminAuthContext.Provider>
   );
-}
+};
 
-export function useAdminAuth() {
+export const useAdminAuth = () => {
   const context = useContext(AdminAuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error("useAdminAuth must be used within AdminAuthProvider");
   }
   return context;
-}
+};

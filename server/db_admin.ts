@@ -1,20 +1,20 @@
 import { getDb } from "./db";
 import { adminUsers } from "../drizzle/schema_admin";
 import { eq } from "drizzle-orm";
-import crypto from "crypto";
+import bcrypt from "bcryptjs";
 
 /**
- * Hash password using SHA256
+ * Hash password using bcrypt
  */
 function hashPassword(password: string): string {
-  return crypto.createHash("sha256").update(password).digest("hex");
+  return bcrypt.hashSync(password, 10);
 }
 
 /**
  * Verify password
  */
 function verifyPassword(password: string, hash: string): boolean {
-  return hashPassword(password) === hash;
+  return bcrypt.compareSync(password, hash);
 }
 
 /**
