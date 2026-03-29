@@ -170,3 +170,21 @@ export async function toggleAdminUserStatus(userId: number) {
   
   return { success: true, is_active: newStatus === 1 };
 }
+
+/**
+ * Ensure default admin user exists
+ */
+export async function ensureDefaultAdminExists() {
+  try {
+    const existing = await getAdminUserByUsername("admin");
+    if (existing.length > 0) {
+      return; // Admin already exists
+    }
+    
+    // Create default admin user with credentials: admin / admin123
+    await createAdminUser("admin", "admin123", "admin@hudhudstones.com");
+    console.log("[Admin] Default admin user created successfully");
+  } catch (error) {
+    console.error("[Admin] Failed to ensure default admin exists:", error);
+  }
+}

@@ -43,7 +43,7 @@ export const AdminAuthProvider: React.FC<{ children: ReactNode }> = ({ children 
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/trpc/auth.login", {
+      const response = await fetch("/api/trpc/admin.login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -2,6 +2,9 @@ import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
 import { authenticateAdminUser, getAllAdminUsers, createAdminUser, updateAdminUserPassword, deleteAdminUser, changeAdminUsername, toggleAdminUserStatus } from "./db_admin";
 import { TRPCError } from "@trpc/server";
+import { SignJWT } from "jose";
+import { ENV } from "./_core/env";
+import { ONE_YEAR_MS } from "@shared/const";
 
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
   if (ctx.user.role !== "admin") {
@@ -9,6 +12,21 @@ const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
   }
   return next({ ctx });
 });
+
+async function generateAdminToken(adminId: string): Promise<string> {
+  const issuedAt = Date.now();
+  const expiresInMs = ONE_YEAR_MS;
+  const expirationSeconds = Math.floor((issuedAt + expiresInMs) / 1000);
+  const secretKey = new TextEncoder().encode(ENV.cookieSecret);
+
+  return new SignJWT({
+    adminId,
+    role: "admin",
+  })
+    .setProtectedHeader({ alg: "HS256", typ: "JWT" })
+    .setExpirationTime(expirationSeconds)
+    .sign(secretKey);
+}
 
 export const adminAuthRouter = router({
   login: publicProcedure
@@ -21,11 +39,26 @@ export const adminAuthRouter = router({
     .mutation(async ({ input }) => {
       try {
         const user = await authenticateAdminUser(input.username, input.password);
-        return user;
+        const token = await generateAdminToken(user.id);
+        return {
+          success: true,
+          data: {
+            user: {
+              id: user.id,
+              username: user.username,
+              email: user.email,
+              role: "admin",
+            },
+            token,
+          },
+        };
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         console.error("[Admin Auth] Login error:", errorMessage);
-        throw new Error(errorMessage || "Login failed. Please try again.");
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: errorMessage || "Login failed. Please try again.",
+        });
       }
     }),
 

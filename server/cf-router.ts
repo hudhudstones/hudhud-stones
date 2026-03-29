@@ -116,6 +116,55 @@ export async function handleApiRequest(req: ApiRequest): Promise<ApiResponse> {
       };
     }
 
+    // Admin login endpoint
+    if (path === 'admin.login' && method === 'POST') {
+      const { username, password } = body;
+      
+      if (!username || !password) {
+        return {
+          success: false,
+          error: 'Username and password are required',
+        };
+      }
+
+      // Check hardcoded admin credentials
+      let user;
+      if (username === 'admin' && password === 'admin123') {
+        user = {
+          id: 'admin-1',
+          username: 'admin',
+          email: 'admin@hudhudstones.com',
+          role: 'admin',
+        };
+      }
+
+      if (!user) {
+        return { success: false, error: 'Invalid username or password' };
+      }
+
+      // Create session token
+      const sessionToken = generateToken();
+      sessions.set(sessionToken, {
+        userId: user.id,
+        username: user.username,
+        role: user.role,
+        expiresAt: Date.now() + 365 * 24 * 60 * 60 * 1000, // 1 year
+      });
+
+      return {
+        success: true,
+        data: {
+          user: {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            role: user.role,
+          },
+          token: sessionToken,
+        },
+      };
+    }
+
     if (path === 'auth.me' && method === 'GET') {
       const session = getSession(token);
       if (!session) {
