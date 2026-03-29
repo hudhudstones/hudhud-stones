@@ -1,7 +1,7 @@
 import { getDb } from "./db";
 import { adminUsers } from "../drizzle/schema_admin";
 import { eq } from "drizzle-orm";
-import bcrypt from "bcryptjs";
+import bcrypt from "bcrypt";
 
 /**
  * Hash password using bcrypt
