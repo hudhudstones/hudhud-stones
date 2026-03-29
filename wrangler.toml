@@ -1,0 +1,22 @@
+name = "hudhud-stones"
+main = "server/worker.ts"
+compatibility_date = "2024-12-16"
+compatibility_flags = ["nodejs_compat"]
+
+account_id = "563cf191721cfc0985b34e51151c8016"
+
+[build]
+command = "pnpm build"
+cwd = "."
+
+[site]
+bucket = "dist/public"
+
+[env.production]
+vars = { ENVIRONMENT = "production", NODE_ENV = "production" }
+
+[env.development]
+vars = { ENVIRONMENT = "development", NODE_ENV = "development" }
+
+[observability]
+enabled = true
