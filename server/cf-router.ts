@@ -15,14 +15,29 @@ export interface ApiResponse {
   message?: string;
 }
 
-// Simple authentication
-const validateAuth = (token?: string): boolean => {
-  // In production, validate JWT or session token
-  return !!token;
+// In-memory session store (in production, use Cloudflare KV)
+const sessions = new Map<string, { userId: string; username: string; role: string; expiresAt: number }>();
+
+// Generate a simple session token
+const generateToken = (): string => {
+  return `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+};
+
+// Validate session token
+const getSession = (token?: string) => {
+  if (!token) return null;
+  const session = sessions.get(token);
+  if (!session) return null;
+  if (session.expiresAt < Date.now()) {
+    sessions.delete(token);
+    return null;
+  }
+  return session;
 };
 
 export async function handleApiRequest(req: ApiRequest): Promise<ApiResponse> {
-  const { method, path, body } = req;
+  const { method, path, body, headers } = req;
+  const token = headers?.['authorization']?.replace('Bearer ', '');
 
   try {
     // Products endpoints
@@ -42,11 +57,19 @@ export async function handleApiRequest(req: ApiRequest): Promise<ApiResponse> {
     }
 
     if (path === 'products.create' && method === 'POST') {
+      const session = getSession(token);
+      if (!session || session.role !== 'admin') {
+        return { success: false, error: 'Unauthorized' };
+      }
       const product = store.createProduct(body);
       return { success: true, data: product };
     }
 
     if (path === 'products.update' && method === 'POST') {
+      const session = getSession(token);
+      if (!session || session.role !== 'admin') {
+        return { success: false, error: 'Unauthorized' };
+      }
       const product = store.updateProduct(body.id, body.updates);
       if (!product) {
         return { success: false, error: 'Product not found' };
@@ -55,6 +78,10 @@ export async function handleApiRequest(req: ApiRequest): Promise<ApiResponse> {
     }
 
     if (path === 'products.delete' && method === 'POST') {
+      const session = getSession(token);
+      if (!session || session.role !== 'admin') {
+        return { success: false, error: 'Unauthorized' };
+      }
       const deleted = store.deleteProduct(body.id);
       return { success: deleted, message: deleted ? 'Product deleted' : 'Product not found' };
     }
@@ -81,6 +108,10 @@ export async function handleApiRequest(req: ApiRequest): Promise<ApiResponse> {
     }
 
     if (path === 'orders.updateStatus' && method === 'POST') {
+      const session = getSession(token);
+      if (!session || session.role !== 'admin') {
+        return { success: false, error: 'Unauthorized' };
+      }
       const order = store.updateOrder(body.id, { status: body.status });
       if (!order) {
         return { success: false, error: 'Order not found' };
@@ -94,27 +125,51 @@ export async function handleApiRequest(req: ApiRequest): Promise<ApiResponse> {
       if (!user || user.passwordHash !== body.password) {
         return { success: false, error: 'Invalid credentials' };
       }
+      
+      // Create session
+      const sessionToken = generateToken();
+      sessions.set(sessionToken, {
+        userId: user.id,
+        username: user.username,
+        role: user.role,
+        expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
+      });
+
       return {
         success: true,
         data: {
           user: { id: user.id, username: user.username, role: user.role },
-          token: `token-${user.id}`,
+          token: sessionToken,
         },
       };
     }
 
     if (path === 'auth.me' && method === 'GET') {
-      // In production, validate token from headers
+      const session = getSession(token);
+      if (!session) {
+        return { success: false, error: 'Unauthorized' };
+      }
       return {
         success: true,
         data: {
-          user: { id: 'user-1', username: 'admin', role: 'admin' },
+          user: { id: session.userId, username: session.username, role: session.role },
         },
       };
     }
 
+    if (path === 'auth.logout' && method === 'POST') {
+      if (token) {
+        sessions.delete(token);
+      }
+      return { success: true, message: 'Logged out' };
+    }
+
     // Analytics endpoints
     if (path === 'analytics.dailyProfit' && method === 'GET') {
+      const session = getSession(token);
+      if (!session || session.role !== 'admin') {
+        return { success: false, error: 'Unauthorized' };
+      }
       return {
         success: true,
         data: { profit: store.getDailyProfit() },
@@ -122,6 +177,10 @@ export async function handleApiRequest(req: ApiRequest): Promise<ApiResponse> {
     }
 
     if (path === 'analytics.weeklyProfit' && method === 'GET') {
+      const session = getSession(token);
+      if (!session || session.role !== 'admin') {
+        return { success: false, error: 'Unauthorized' };
+      }
       return {
         success: true,
         data: { profit: store.getWeeklyProfit() },
@@ -129,6 +188,10 @@ export async function handleApiRequest(req: ApiRequest): Promise<ApiResponse> {
     }
 
     if (path === 'analytics.monthlyProfit' && method === 'GET') {
+      const session = getSession(token);
+      if (!session || session.role !== 'admin') {
+        return { success: false, error: 'Unauthorized' };
+      }
       return {
         success: true,
         data: { profit: store.getMonthlyProfit() },
