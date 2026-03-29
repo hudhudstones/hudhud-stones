@@ -55,7 +55,8 @@ export default function AdminCategories() {
       setFormData({ name: "", slug: "", description: "" });
       refetch();
     } catch (error) {
-      toast.error("Failed to save category");
+      const errorMsg = error instanceof Error ? error.message : "Failed to save category";
+      toast.error(errorMsg);
     }
   };
 
@@ -67,7 +68,8 @@ export default function AdminCategories() {
       toast.success("Category deleted successfully");
       refetch();
     } catch (error) {
-      toast.error("Failed to delete category");
+      const errorMsg = error instanceof Error ? error.message : "Failed to delete category";
+      toast.error(errorMsg);
     }
   };
 
@@ -151,9 +153,17 @@ export default function AdminCategories() {
             <div className="flex gap-4 pt-4">
               <Button
                 type="submit"
-                className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+                disabled={createCategory.isPending || updateCategory.isPending}
+                className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
               >
-                {editingCategory ? "Update Category" : "Create Category"}
+                {createCategory.isPending || updateCategory.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    {editingCategory ? "Updating..." : "Creating..."}
+                  </>
+                ) : (
+                  editingCategory ? "Update Category" : "Create Category"
+                )}
               </Button>
               <Button
                 type="button"
@@ -163,6 +173,7 @@ export default function AdminCategories() {
                 }}
                 variant="outline"
                 className="flex-1"
+                disabled={createCategory.isPending || updateCategory.isPending}
               >
                 Cancel
               </Button>
@@ -190,12 +201,21 @@ export default function AdminCategories() {
                   <Edit2 className="w-4 h-4 text-primary" />
                   <span className="text-sm">Edit</span>
                 </button>
-                <button
+               <button
                   onClick={() => handleDelete(category.id)}
-                  className="flex-1 p-2 hover:bg-destructive/10 rounded transition-colors flex items-center justify-center gap-2"
+                  disabled={deleteCategory.isPending}
+                  className="flex-1 p-2 hover:bg-destructive/10 rounded transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  <Trash2 className="w-4 h-4 text-destructive" />
-                  <span className="text-sm">Delete</span>
+                  {deleteCategory.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                      <span className="text-sm">Delete</span>
+                    </>
+                  )}
                 </button>
               </div>
             </Card>

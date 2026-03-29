@@ -8,6 +8,7 @@ import {
   decimal,
   json,
   boolean,
+  foreignKey,
 } from "drizzle-orm/mysql-core";
 
 /**
@@ -47,20 +48,30 @@ export type InsertCategory = typeof categories.$inferInsert;
 /**
  * Products with pricing, stock, and featured flag
  */
-export const products = mysqlTable("products", {
-  id: int("id").autoincrement().primaryKey(),
-  name: varchar("name", { length: 255 }).notNull(),
-  slug: varchar("slug", { length: 255 }).notNull().unique(),
-  description: text("description"),
-  categoryId: int("categoryId").notNull(),
-  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-  cost: decimal("cost", { precision: 10, scale: 2 }).default("0").notNull(), // Admin-only cost for profit calculations
-  stock: int("stock").default(0).notNull(),
-  featured: boolean("featured").default(false).notNull(),
-  images: json("images").$type<string[]>().default([]).notNull(), // Array of S3 URLs
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+export const products = mysqlTable(
+  "products",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    name: varchar("name", { length: 255 }).notNull(),
+    slug: varchar("slug", { length: 255 }).notNull().unique(),
+    description: text("description"),
+    categoryId: int("categoryId").notNull(),
+    price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+    cost: decimal("cost", { precision: 10, scale: 2 }).default("0").notNull(), // Admin-only cost for profit calculations
+    stock: int("stock").default(0).notNull(),
+    featured: boolean("featured").default(false).notNull(),
+    images: json("images").$type<string[]>().default([]).notNull(), // Array of S3 URLs
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (t) => ({
+    categoryFk: foreignKey({
+      columns: [t.categoryId],
+      foreignColumns: [categories.id],
+      name: "fk_products_categoryId",
+    }).onDelete("restrict"),
+  })
+);
 
 export type Product = typeof products.$inferSelect;
 export type InsertProduct = typeof products.$inferInsert;
@@ -90,15 +101,30 @@ export type InsertOrder = typeof orders.$inferInsert;
 /**
  * Order items (line items in an order)
  */
-export const orderItems = mysqlTable("orderItems", {
-  id: int("id").autoincrement().primaryKey(),
-  orderId: int("orderId").notNull(),
-  productId: int("productId").notNull(),
-  productName: varchar("productName", { length: 255 }).notNull(),
-  quantity: int("quantity").notNull(),
-  priceAtPurchase: decimal("priceAtPurchase", { precision: 10, scale: 2 }).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+export const orderItems = mysqlTable(
+  "orderItems",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    orderId: int("orderId").notNull(),
+    productId: int("productId").notNull(),
+    productName: varchar("productName", { length: 255 }).notNull(),
+    quantity: int("quantity").notNull(),
+    priceAtPurchase: decimal("priceAtPurchase", { precision: 10, scale: 2 }).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (t) => ({
+    orderFk: foreignKey({
+      columns: [t.orderId],
+      foreignColumns: [orders.id],
+      name: "fk_orderItems_orderId",
+    }).onDelete("cascade"),
+    productFk: foreignKey({
+      columns: [t.productId],
+      foreignColumns: [products.id],
+      name: "fk_orderItems_productId",
+    }).onDelete("restrict"),
+  })
+);
 
 export type OrderItem = typeof orderItems.$inferSelect;
 export type InsertOrderItem = typeof orderItems.$inferInsert;

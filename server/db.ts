@@ -1,5 +1,6 @@
 import { eq, desc, like, and, gte, lte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import { sql } from "drizzle-orm";
 import {
   InsertUser,
   users,
@@ -21,11 +22,27 @@ export async function getDb() {
     try {
       _db = drizzle(process.env.DATABASE_URL);
     } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
+      console.error("[Database] Failed to connect:", error);
       _db = null;
     }
   }
   return _db;
+}
+
+// Health check function to verify DB is working
+export async function checkDatabaseHealth(): Promise<boolean> {
+  try {
+    const db = await getDb();
+    if (!db) {
+      console.error("[Database] Database not initialized");
+      return false;
+    }
+    await db.select().from(categories).limit(1);
+    return true;
+  } catch (error) {
+    console.error("[Database] Health check failed:", error);
+    return false;
+  }
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {
@@ -129,25 +146,50 @@ export async function createCategory(data: {
 }): Promise<Category> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const result = await db.insert(categories).values(data);
-  const id = (result as any).insertId;
-  return {
-    id,
-    name: data.name,
-    slug: data.slug,
-    description: data.description ?? null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
+  
+  try {
+    const result = await db.insert(categories).values(data);
+    const id = (result as any).insertId;
+    
+    // Fetch the created record to get actual timestamps from DB
+    const created = await db.select().from(categories).where(eq(categories.id, id)).limit(1);
+    if (!created[0]) {
+      throw new Error("Failed to retrieve created category");
+    }
+    
+    return created[0];
+  } catch (error: any) {
+    if (error.code === "ER_DUP_ENTRY") {
+      throw new Error("Category slug already exists");
+    }
+    console.error("[Database] Failed to create category:", error);
+    throw error;
+  }
 }
 
 export async function updateCategory(
   id: number,
   data: Partial<{ name: string; slug: string; description: string }>
-): Promise<void> {
+): Promise<{ success: boolean; updated: number }> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.update(categories).set(data).where(eq(categories.id, id));
+  
+  try {
+    const result = await db.update(categories).set(data).where(eq(categories.id, id));
+    const affectedRows = (result as any).affectedRows || 0;
+    
+    if (affectedRows === 0) {
+      throw new Error(`Category with id ${id} not found`);
+    }
+    
+    return { success: true, updated: affectedRows };
+  } catch (error: any) {
+    if (error.code === "ER_DUP_ENTRY") {
+      throw new Error("Category slug already exists");
+    }
+    console.error("[Database] Failed to update category:", error);
+    throw error;
+  }
 }
 
 export async function deleteCategory(id: number): Promise<void> {
@@ -231,22 +273,44 @@ export async function createProduct(data: {
 }): Promise<Product> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const result = await db.insert(products).values(data);
-  const id = (result as any).insertId;
-  return {
-    id,
-    name: data.name,
-    slug: data.slug,
-    description: data.description ?? null,
-    categoryId: data.categoryId,
-    price: data.price,
-    cost: data.cost ?? "0",
-    stock: data.stock,
-    images: data.images,
-    featured: data.featured ?? false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
+  
+  try {
+    // Validate category exists
+    const category = await db.select().from(categories).where(eq(categories.id, data.categoryId)).limit(1);
+    if (!category[0]) {
+      throw new Error(`Category with id ${data.categoryId} not found`);
+    }
+    
+    // Validate price and stock
+    const price = parseFloat(data.price);
+    if (isNaN(price) || price < 0) {
+      throw new Error("Price must be a positive number");
+    }
+    
+    if (data.stock < 0) {
+      throw new Error("Stock cannot be negative");
+    }
+    
+    const result = await db.insert(products).values(data);
+    const id = (result as any).insertId;
+    
+    // Fetch the created record to get actual timestamps
+    const created = await db.select().from(products).where(eq(products.id, id)).limit(1);
+    if (!created[0]) {
+      throw new Error("Failed to retrieve created product");
+    }
+    
+    return created[0];
+  } catch (error: any) {
+    if (error.code === "ER_DUP_ENTRY") {
+      throw new Error("Product slug already exists");
+    }
+    if (error.code === "ER_NO_REFERENCED_ROW") {
+      throw new Error("Invalid category reference");
+    }
+    console.error("[Database] Failed to create product:", error);
+    throw error;
+  }
 }
 
 export async function updateProduct(
@@ -262,10 +326,50 @@ export async function updateProduct(
     images: string[];
     featured: boolean;
   }>
-): Promise<void> {
+): Promise<{ success: boolean; updated: number }> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.update(products).set(data).where(eq(products.id, id));
+  
+  try {
+    // Validate category if being updated
+    if (data.categoryId !== undefined) {
+      const category = await db.select().from(categories).where(eq(categories.id, data.categoryId)).limit(1);
+      if (!category[0]) {
+        throw new Error(`Category with id ${data.categoryId} not found`);
+      }
+    }
+    
+    // Validate price if being updated
+    if (data.price !== undefined) {
+      const price = parseFloat(data.price);
+      if (isNaN(price) || price < 0) {
+        throw new Error("Price must be a positive number");
+      }
+    }
+    
+    // Validate stock if being updated
+    if (data.stock !== undefined && data.stock < 0) {
+      throw new Error("Stock cannot be negative");
+    }
+    
+    const result = await db.update(products).set(data).where(eq(products.id, id));
+    const affectedRows = (result as any).affectedRows || 0;
+    
+    if (affectedRows === 0) {
+      throw new Error(`Product with id ${id} not found`);
+    }
+    
+    return { success: true, updated: affectedRows };
+  } catch (error: any) {
+    if (error.code === "ER_DUP_ENTRY") {
+      throw new Error("Product slug already exists");
+    }
+    if (error.code === "ER_NO_REFERENCED_ROW") {
+      throw new Error("Invalid category reference");
+    }
+    console.error("[Database] Failed to update product:", error);
+    throw error;
+  }
 }
 
 export async function deleteProduct(id: number): Promise<void> {
@@ -299,30 +403,53 @@ export async function createOrder(data: {
 }): Promise<Order> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const result = await db.insert(orders).values(data);
-  const id = (result as any).insertId;
-  return {
-    id,
-    orderNumber: data.orderNumber,
-    customerName: data.customerName,
-    customerEmail: data.customerEmail,
-    customerPhone: data.customerPhone,
-    customerAddress: data.customerAddress,
-    total: data.total,
-    status: "pending",
-    notes: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
+  
+  try {
+    // Validate total
+    const total = parseFloat(data.total);
+    if (isNaN(total) || total < 0) {
+      throw new Error("Total must be a positive number");
+    }
+    
+    const result = await db.insert(orders).values(data);
+    const id = (result as any).insertId;
+    
+    // Fetch the created record to get actual timestamps
+    const created = await db.select().from(orders).where(eq(orders.id, id)).limit(1);
+    if (!created[0]) {
+      throw new Error("Failed to retrieve created order");
+    }
+    
+    return created[0];
+  } catch (error: any) {
+    if (error.code === "ER_DUP_ENTRY") {
+      throw new Error("Order number already exists");
+    }
+    console.error("[Database] Failed to create order:", error);
+    throw error;
+  }
 }
 
 export async function updateOrderStatus(
   id: number,
   status: "pending" | "processing" | "prepare" | "given" | "complete" | "cancelled"
-): Promise<void> {
+): Promise<{ success: boolean; updated: number }> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.update(orders).set({ status }).where(eq(orders.id, id));
+  
+  try {
+    const result = await db.update(orders).set({ status }).where(eq(orders.id, id));
+    const affectedRows = (result as any).affectedRows || 0;
+    
+    if (affectedRows === 0) {
+      throw new Error(`Order with id ${id} not found`);
+    }
+    
+    return { success: true, updated: affectedRows };
+  } catch (error: any) {
+    console.error("[Database] Failed to update order status:", error);
+    throw error;
+  }
 }
 
 // ============ ORDER ITEMS ============
@@ -342,11 +469,85 @@ export async function createOrderItem(data: {
 }): Promise<OrderItem> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const result = await db.insert(orderItems).values(data);
-  const id = (result as any).insertId;
-  return {
-    ...data,
-    id,
-    createdAt: new Date(),
-  };
+  
+  try {
+    // Validate quantity
+    if (data.quantity < 1) {
+      throw new Error("Quantity must be at least 1");
+    }
+    
+    // Validate price
+    const price = parseFloat(data.priceAtPurchase);
+    if (isNaN(price) || price < 0) {
+      throw new Error("Price must be a positive number");
+    }
+    
+    const result = await db.insert(orderItems).values(data);
+    const id = (result as any).insertId;
+    
+    // Fetch the created record to get actual timestamp
+    const created = await db.select().from(orderItems).where(eq(orderItems.id, id)).limit(1);
+    if (!created[0]) {
+      throw new Error("Failed to retrieve created order item");
+    }
+    
+    return created[0];
+  } catch (error: any) {
+    if (error.code === "ER_NO_REFERENCED_ROW") {
+      throw new Error("Invalid order or product reference");
+    }
+    console.error("[Database] Failed to create order item:", error);
+    throw error;
+  }
+}
+
+/**
+ * Create multiple order items with transaction-like safety.
+ * Validates all items first before creating any to prevent partial saves.
+ */
+export async function createOrderItemBatch(
+  items: Array<{
+    orderId: number;
+    productId: number;
+    productName: string;
+    quantity: number;
+    priceAtPurchase: string;
+  }>
+): Promise<OrderItem[]> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    // Pre-validate all items before creating any
+    for (const item of items) {
+      if (item.quantity < 1) {
+        throw new Error("Quantity must be at least 1");
+      }
+      const price = parseFloat(item.priceAtPurchase);
+      if (isNaN(price) || price < 0) {
+        throw new Error("Price must be a positive number");
+      }
+    }
+
+    // Create all items
+    const createdItems: OrderItem[] = [];
+    for (const item of items) {
+      const result = await db.insert(orderItems).values(item);
+      const id = (result as any).insertId;
+      
+      const created = await db.select().from(orderItems).where(eq(orderItems.id, id)).limit(1);
+      if (!created[0]) {
+        throw new Error("Failed to retrieve created order item");
+      }
+      createdItems.push(created[0]);
+    }
+
+    return createdItems;
+  } catch (error: any) {
+    if (error.code === "ER_NO_REFERENCED_ROW") {
+      throw new Error("Invalid order or product reference");
+    }
+    console.error("[Database] Failed to create order items batch:", error);
+    throw error;
+  }
 }

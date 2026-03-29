@@ -46,23 +46,40 @@ export default function ProductForm({ product, onClose }: ProductFormProps) {
 
     setUploading(true);
     try {
-      for (const file of Array.from(files)) {
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-          const base64 = (event.target?.result as string).split(",")[1];
-          const result = await uploadImage.mutateAsync({
-            file: base64,
-            filename: file.name,
-            mimeType: file.type || 'image/jpeg',
-          });
-          setImages((prev) => [...prev, result.url]);
-        };
-        reader.readAsDataURL(file);
-      }
+      const uploadPromises = Array.from(files).map((file) => {
+        return new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = async (event) => {
+            try {
+              const base64 = (event.target?.result as string).split(",")[1];
+              const result = await uploadImage.mutateAsync({
+                file: base64,
+                filename: file.name,
+                mimeType: file.type || 'image/jpeg',
+              });
+              resolve(result.url);
+            } catch (error) {
+              reject(error);
+            }
+          };
+          reader.onerror = () => {
+            reject(new Error("Failed to read file"));
+          };
+          reader.readAsDataURL(file);
+        });
+      });
+
+      const uploadedUrls = await Promise.all(uploadPromises);
+      setImages((prev) => [...prev, ...uploadedUrls]);
     } catch (error) {
-      toast.error("Failed to upload image");
+      const errorMsg = error instanceof Error ? error.message : "Failed to upload image";
+      toast.error(errorMsg);
     } finally {
       setUploading(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   };
 
@@ -71,6 +88,11 @@ export default function ProductForm({ product, onClose }: ProductFormProps) {
 
     if (!formData.name || !formData.slug || !formData.price) {
       toast.error("Please fill in all required fields");
+      return;
+    }
+
+    if (uploading) {
+      toast.error("Please wait for images to finish uploading");
       return;
     }
 
@@ -91,7 +113,8 @@ export default function ProductForm({ product, onClose }: ProductFormProps) {
       }
       onClose();
     } catch (error) {
-      toast.error("Failed to save product");
+      const errorMsg = error instanceof Error ? error.message : "Failed to save product";
+      toast.error(errorMsg);
     }
   };
 
@@ -245,7 +268,7 @@ export default function ProductForm({ product, onClose }: ProductFormProps) {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
+              disabled={uploading || createProduct.isPending || updateProduct.isPending}
               className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
               {uploading ? (
@@ -288,15 +311,24 @@ export default function ProductForm({ product, onClose }: ProductFormProps) {
         <div className="flex gap-4 pt-6 border-t border-border">
           <Button
             type="submit"
-            className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+            disabled={uploading || createProduct.isPending || updateProduct.isPending}
+            className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
-            {product ? "Update Product" : "Create Product"}
+            {createProduct.isPending || updateProduct.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                {product ? "Updating..." : "Creating..."}
+              </>
+            ) : (
+              product ? "Update Product" : "Create Product"
+            )}
           </Button>
           <Button
             type="button"
             onClick={onClose}
             variant="outline"
             className="flex-1"
+            disabled={uploading || createProduct.isPending || updateProduct.isPending}
           >
             Cancel
           </Button>

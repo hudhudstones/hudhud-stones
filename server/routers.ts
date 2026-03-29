@@ -22,7 +22,9 @@ import {
   createOrder,
   updateOrderStatus,
   createOrderItem,
+  createOrderItemBatch,
   getOrderItems,
+  checkDatabaseHealth,
 } from "./db";
 import { storagePut } from "./storage";
 import { aiRouter } from "./routers_ai";
@@ -39,6 +41,16 @@ const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
 
 export const appRouter = router({
   system: systemRouter,
+  
+  health: publicProcedure.query(async () => {
+    const dbHealthy = await checkDatabaseHealth();
+    return {
+      status: dbHealthy ? "healthy" : "unhealthy",
+      database: dbHealthy ? "connected" : "disconnected",
+      timestamp: new Date().toISOString(),
+    };
+  }),
+  
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -69,7 +81,14 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input }) => {
-        return await createCategory(input);
+        try {
+          return await createCategory(input);
+        } catch (error) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: error instanceof Error ? error.message : "Failed to create category",
+          });
+        }
       }),
 
     update: adminProcedure
@@ -82,15 +101,33 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input }) => {
-        await updateCategory(input.id, input);
-        return { success: true };
+        try {
+          const { id, ...data } = input;
+          const result = await updateCategory(id, data);
+          if (!result.success) {
+            throw new Error("Failed to update category");
+          }
+          return result;
+        } catch (error) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: error instanceof Error ? error.message : "Failed to update category",
+          });
+        }
       }),
 
     delete: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
-        await deleteCategory(input.id);
-        return { success: true };
+        try {
+          await deleteCategory(input.id);
+          return { success: true };
+        } catch (error) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: error instanceof Error ? error.message : "Failed to delete category",
+          });
+        }
       }),
   }),
 
@@ -127,16 +164,36 @@ export const appRouter = router({
           name: z.string().min(1),
           slug: z.string().min(1),
           description: z.string().optional(),
-          categoryId: z.number(),
-          price: z.string(),
-          cost: z.string().optional(),
-          stock: z.number().default(0),
+          categoryId: z.number().min(1, "Category is required"),
+          price: z.string().min(1, "Price is required").refine(
+            (val) => {
+              const num = parseFloat(val);
+              return !isNaN(num) && num > 0;
+            },
+            "Price must be a positive number"
+          ),
+          cost: z.string().optional().refine(
+            (val) => {
+              if (!val) return true;
+              const num = parseFloat(val);
+              return !isNaN(num) && num >= 0;
+            },
+            "Cost must be a positive number or zero"
+          ),
+          stock: z.number().min(0, "Stock cannot be negative").default(0),
           featured: z.boolean().default(false),
           images: z.array(z.string()).default([]),
         })
       )
       .mutation(async ({ input }) => {
-        return await createProduct(input);
+        try {
+          return await createProduct(input);
+        } catch (error) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: error instanceof Error ? error.message : "Failed to create product",
+          });
+        }
       }),
 
     update: adminProcedure
@@ -146,23 +203,54 @@ export const appRouter = router({
           name: z.string().min(1).optional(),
           slug: z.string().min(1).optional(),
           description: z.string().optional(),
-          categoryId: z.number().optional(),
-          price: z.string().optional(),
-          cost: z.string().optional(),
-          stock: z.number().optional(),
+          categoryId: z.number().min(1).optional(),
+          price: z.string().refine(
+            (val) => {
+              const num = parseFloat(val);
+              return !isNaN(num) && num > 0;
+            },
+            "Price must be a positive number"
+          ).optional(),
+          cost: z.string().refine(
+            (val) => {
+              const num = parseFloat(val);
+              return !isNaN(num) && num >= 0;
+            },
+            "Cost must be a positive number or zero"
+          ).optional(),
+          stock: z.number().min(0).optional(),
           featured: z.boolean().optional(),
           images: z.array(z.string()).optional(),
         })
       )
       .mutation(async ({ input }) => {
-        const { id, ...data } = input;
-        return await updateProduct(id, data);
+        try {
+          const { id, ...data } = input;
+          const result = await updateProduct(id, data);
+          if (!result.success) {
+            throw new Error("Failed to update product");
+          }
+          return result;
+        } catch (error) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: error instanceof Error ? error.message : "Failed to update product",
+          });
+        }
       }),
 
     delete: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
-        return await deleteProduct(input.id);
+        try {
+          await deleteProduct(input.id);
+          return { success: true };
+        } catch (error) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: error instanceof Error ? error.message : "Failed to delete product",
+          });
+        }
       }),
 
     uploadImage: adminProcedure
@@ -217,44 +305,73 @@ export const appRouter = router({
     create: publicProcedure
       .input(
         z.object({
-          customerName: z.string().min(1),
-          customerEmail: z.string().email(),
-          customerPhone: z.string().min(1),
-          customerAddress: z.string().min(1),
+          customerName: z.string().min(1, "Customer name is required"),
+          customerEmail: z.string().email("Invalid email address"),
+          customerPhone: z.string().min(1, "Phone is required"),
+          customerAddress: z.string().min(1, "Address is required"),
           items: z.array(
             z.object({
-              productId: z.number(),
-              productName: z.string(),
-              quantity: z.number().min(1),
-              priceAtPurchase: z.string(),
+              productId: z.number().min(1, "Product ID is required"),
+              productName: z.string().min(1),
+              quantity: z.number().min(1, "Quantity must be at least 1"),
+              priceAtPurchase: z.string().min(1, "Price is required").refine(
+                (val) => {
+                  const num = parseFloat(val);
+                  return !isNaN(num) && num > 0;
+                },
+                "Price must be a positive number"
+              ),
             })
+          ).min(1, "At least one item is required"),
+          total: z.string().min(1, "Total is required").refine(
+            (val) => {
+              const num = parseFloat(val);
+              return !isNaN(num) && num > 0;
+            },
+            "Total must be a positive number"
           ),
-          total: z.string(),
         })
       )
       .mutation(async ({ input }) => {
-        const orderNumber = `ORD-${nanoid(12).toUpperCase()}`;
+        try {
+          const orderNumber = `ORD-${nanoid(12).toUpperCase()}`;
 
-        const order = await createOrder({
-          orderNumber,
-          customerName: input.customerName,
-          customerEmail: input.customerEmail,
-          customerPhone: input.customerPhone,
-          customerAddress: input.customerAddress,
-          total: input.total,
-        });
+          const order = await createOrder({
+            orderNumber,
+            customerName: input.customerName,
+            customerEmail: input.customerEmail,
+            customerPhone: input.customerPhone,
+            customerAddress: input.customerAddress,
+            total: input.total,
+          });
 
-        for (const item of input.items) {
-          await createOrderItem({
-            orderId: order.id,
-            productId: item.productId,
-            productName: item.productName,
-            quantity: item.quantity,
-            priceAtPurchase: item.priceAtPurchase,
+          // Use batch create for better atomicity
+          try {
+            const orderItemsData = input.items.map(item => ({
+              orderId: order.id,
+              productId: item.productId,
+              productName: item.productName,
+              quantity: item.quantity,
+              priceAtPurchase: item.priceAtPurchase,
+            }));
+            
+            await createOrderItemBatch(orderItemsData);
+          } catch (error) {
+            console.error("[Orders] Failed to create order items:", error);
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: error instanceof Error ? error.message : "Failed to add items to order",
+            });
+          }
+
+          return order;
+        } catch (error) {
+          if (error instanceof TRPCError) throw error;
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: error instanceof Error ? error.message : "Failed to create order",
           });
         }
-
-        return order;
       }),
 
     updateStatus: adminProcedure
@@ -265,8 +382,15 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input }) => {
-        await updateOrderStatus(input.id, input.status);
-        return { success: true };
+        try {
+          const result = await updateOrderStatus(input.id, input.status);
+          return result;
+        } catch (error) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: error instanceof Error ? error.message : "Failed to update order status",
+          });
+        }
       }),
 
     delete: adminProcedure

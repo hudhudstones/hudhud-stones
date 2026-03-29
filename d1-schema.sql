@@ -31,7 +31,8 @@ CREATE TABLE IF NOT EXISTS products (
   featured INTEGER DEFAULT 0 NOT NULL,
   images TEXT NOT NULL,
   createdAt INTEGER NOT NULL,
-  updatedAt INTEGER NOT NULL
+  updatedAt INTEGER NOT NULL,
+  CONSTRAINT fk_products_categoryId FOREIGN KEY (categoryId) REFERENCES categories(id)
 );
 
 CREATE TABLE IF NOT EXISTS orders (
@@ -55,7 +56,9 @@ CREATE TABLE IF NOT EXISTS orderItems (
   productName TEXT NOT NULL,
   quantity INTEGER NOT NULL,
   priceAtPurchase TEXT NOT NULL,
-  createdAt INTEGER NOT NULL
+  createdAt INTEGER NOT NULL,
+  CONSTRAINT fk_orderItems_orderId FOREIGN KEY (orderId) REFERENCES orders(id) ON DELETE CASCADE,
+  CONSTRAINT fk_orderItems_productId FOREIGN KEY (productId) REFERENCES products(id)
 );
 
 -- Insert sample data
