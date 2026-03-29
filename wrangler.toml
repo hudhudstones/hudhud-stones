@@ -20,3 +20,9 @@ vars = { ENVIRONMENT = "development", NODE_ENV = "development" }
 
 [observability]
 enabled = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "hudhud-stones-db"
+database_id = "c5f42a15-ba4b-4405-af77-800fcb5699d0"
+

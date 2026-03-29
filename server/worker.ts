@@ -57,6 +57,7 @@ export default {
               path,
               body,
               headers: Object.fromEntries(request.headers),
+              env,
             });
 
             return new Response(JSON.stringify(response), {
