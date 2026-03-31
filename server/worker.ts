@@ -1,5 +1,5 @@
 // Cloudflare Workers handler - Serve React SPA + API backend
-import { handleApiRequest } from './cf-router';
+import { handleTrpcRequest } from './cf-handler';
 import { getAsset, getMimeType } from './assets-manifest';
 
 export default {
@@ -41,44 +41,41 @@ export default {
         );
       }
 
-      // tRPC endpoint
+      // tRPC endpoint using the new handler
       if (pathname.startsWith('/api/trpc/')) {
-        const path = pathname.replace('/api/trpc/', '');
-        
-        if (request.method === 'POST' || request.method === 'GET') {
-          try {
-            let body;
-            if (request.method === 'POST') {
-              body = await request.json();
-            }
+        try {
+          let body;
+          if (request.method === 'POST') {
+            body = await request.json();
+          }
 
-            const response = await handleApiRequest({
-              method: request.method,
-              path,
-              body,
-              headers: Object.fromEntries(request.headers),
-              env,
-            });
+          const response = await handleTrpcRequest({
+            method: request.method,
+            pathname,
+            body,
+            headers: Object.fromEntries(request.headers),
+            env,
+          });
 
-            return new Response(JSON.stringify(response), {
-              status: response.success ? 200 : 400,
+          return new Response(JSON.stringify(response), {
+            status: response.success ? 200 : 400,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+            },
+          });
+        } catch (e) {
+          console.error('[tRPC Error]', e);
+          return new Response(
+            JSON.stringify({ success: false, error: 'Invalid request' }),
+            { 
+              status: 400,
               headers: {
                 ...corsHeaders,
                 'Content-Type': 'application/json',
-              },
-            });
-          } catch (e) {
-            return new Response(
-              JSON.stringify({ success: false, error: 'Invalid request' }),
-              { 
-                status: 400,
-                headers: {
-                  ...corsHeaders,
-                  'Content-Type': 'application/json',
-                }
               }
-            );
-          }
+            }
+          );
         }
       }
 

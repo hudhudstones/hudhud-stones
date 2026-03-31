@@ -1,6 +1,4 @@
 import { eq, desc, like, and, gte, lte } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
-import { sql } from "drizzle-orm";
 import {
   InsertUser,
   users,
@@ -15,11 +13,29 @@ import {
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
-let _db: ReturnType<typeof drizzle> | null = null;
+let _db: any = null;
+let _d1Binding: any = null;
+
+export function setD1Binding(binding: any) {
+  _d1Binding = binding;
+  _db = null; // Reset cached db
+}
 
 export async function getDb() {
+  // Cloudflare Workers environment
+  if (_d1Binding) {
+    const { drizzle } = await import("drizzle-orm/d1");
+    const schema_d1 = await import("../drizzle/schema_d1");
+    if (!_db) {
+      _db = drizzle(_d1Binding, { schema: schema_d1 });
+    }
+    return _db;
+  }
+
+  // Local development with MySQL
   if (!_db && process.env.DATABASE_URL) {
     try {
+      const { drizzle } = await import("drizzle-orm/mysql2");
       _db = drizzle(process.env.DATABASE_URL);
     } catch (error) {
       console.error("[Database] Failed to connect:", error);
